@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TaskFlow — Estadísticas</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .stats-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+    @media (max-width:900px) { .stats-layout { grid-template-columns: 1fr; } }
+
+    .chart-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.4rem;
+    }
+    .chart-title {
+      font-family: 'Syne', sans-serif; font-weight: 700;
+      font-size: .95rem; margin-bottom: 1.25rem;
+    }
+
+    /* Donut chart */
+    .donut-wrap { display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; }
+    .donut-svg { flex-shrink: 0; }
+    .donut-legend { display: flex; flex-direction: column; gap: .6rem; }
+    .legend-row { display: flex; align-items: center; gap: .55rem; font-size: .84rem; }
+    .legend-color { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+    .legend-val { font-family:'Syne',sans-serif; font-weight:700; font-size:.95rem; margin-left:auto; padding-left:.5rem; }
+
+    /* Barras de prioridad */
+    .priority-bars { display: flex; flex-direction: column; gap: .85rem; }
+    .pbar-row {}
+    .pbar-header { display:flex; justify-content:space-between; font-size:.82rem; margin-bottom:.3rem; }
+    .pbar-track { height:8px; background:var(--surface2); border-radius:99px; overflow:hidden; }
+    .pbar-fill  { height:100%; border-radius:99px; transition:width .8s ease; }
+
+    /* Lista de proyectos con progreso */
+    .proj-progress-list { display: flex; flex-direction: column; gap: .85rem; }
+    .proj-prog-item {
+      background: var(--surface2); border-radius: var(--radius-sm);
+      padding: .9rem 1.1rem;
+    }
+    .proj-prog-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:.55rem; gap:.5rem; }
+    .proj-prog-name { font-size:.9rem; font-weight:600; display:flex; align-items:center; gap:.45rem; }
+    .proj-prog-stats { font-size:.75rem; color:var(--muted); flex-shrink:0; }
+    .proj-color-dot  { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+  </style>
+</head>
+<body>
+<button class="hamburger" id="hamburger">☰</button>
+
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo"><span class="logo-dot"></span>TaskFlow</div>
+    <nav class="sidebar-nav">
+      <a href="dashboard.html" class="nav-item"><span class="nav-icon">🏠</span>Dashboard</a>
+      <a href="projects.html"  class="nav-item"><span class="nav-icon">📁</span>Proyectos</a>
+      <a href="kanban.html"    class="nav-item"><span class="nav-icon">📋</span>Kanban</a>
+      <a href="calendar.html"  class="nav-item"><span class="nav-icon">📅</span>Calendario</a>
+      <a href="stats.html"     class="nav-item"><span class="nav-icon">📊</span>Estadísticas</a>
+      <div class="nav-divider"></div>
+      <a href="settings.html"  class="nav-item"><span class="nav-icon">⚙️</span>Configuración</a>
+    </nav>
+    <div class="sidebar-bottom">
+      <span class="sidebar-version">v1.0</span>
+      <button class="theme-btn" id="themeBtn">🌙</button>
+    </div>
+  </aside>
+
+  <div class="content">
+    <header class="page-header">
+      <div>
+        <h1 class="page-title">Estadísticas</h1>
+        <p class="page-sub">Resumen del progreso de tareas y proyectos.</p>
+      </div>
+    </header>
+
+    <main class="page-main">
+      <!-- Stats de resumen -->
+      <div class="stats-grid" id="statsGrid"></div>
+
+      <div class="stats-layout">
+        <!-- Donut: distribución de tareas -->
+        <div class="chart-card">
+          <div class="chart-title">Distribución de tareas</div>
+          <div class="donut-wrap">
+            <svg class="donut-svg" width="140" height="140" viewBox="0 0 140 140" id="donutSvg"></svg>
+            <div class="donut-legend" id="donutLegend"></div>
+          </div>
+        </div>
+
+        <!-- Barras: tareas por prioridad -->
+        <div class="chart-card">
+          <div class="chart-title">Tareas por prioridad</div>
+          <div class="priority-bars" id="priorityBars"></div>
+        </div>
+
+        <!-- Progreso por proyecto (ocupa ambas columnas) -->
+        <div class="chart-card" style="grid-column:1/-1">
+          <div class="chart-title">Progreso por proyecto</div>
+          <div class="proj-progress-list" id="projProgressList"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<div id="toastWrap" class="toast-wrap"></div>
+<script src="shared.js"></script>
+<script>
+seedData();
+initTheme();
+initNav();
+render();
+
+function render() {
+  const { tasks, projects } = loadAll();
+
+  const total   = tasks.length;
+  const pending = tasks.filter(t => t.status === 'pending').length;
+  const inProg  = tasks.filter(t => t.status === 'in_progress').length;
+  const done    = tasks.filter(t => t.status === 'done').length;
+  const high    = tasks.filter(t => t.priority === 'high').length;
+  const medium  = tasks.filter(t => t.priority === 'medium').length;
+  const low     = tasks.filter(t => t.priority === 'low').length;
+
+  // ── Stats ───────────────────────────────────
+  document.getElementById('statsGrid').innerHTML = `
+    <div class="stat-card"><div class="stat-icon blue">📋</div><div><div class="stat-value">${total}</div><div class="stat-label">Total tareas</div></div></div>
+    <div class="stat-card"><div class="stat-icon amber">🕐</div><div><div class="stat-value">${pending}</div><div class="stat-label">Pendientes</div></div></div>
+    <div class="stat-card"><div class="stat-icon blue">⚡</div><div><div class="stat-value">${inProg}</div><div class="stat-label">En progreso</div></div></div>
+    <div class="stat-card"><div class="stat-icon green">✅</div><div><div class="stat-value">${done}</div><div class="stat-label">Completadas</div></div></div>
+  `;
+
+  // ── Donut SVG ────────────────────────────────
+  const cx = 70, cy = 70, r = 50, stroke = 18;
+  const circ = 2 * Math.PI * r;
+  const segments = [
+    { label:'Pendiente',   count: pending, color:'#6b7290' },
+    { label:'En Progreso', count: inProg,  color:'#5b6af0' },
+    { label:'Terminado',   count: done,    color:'#7ee8a2' },
+  ];
+
+  let offset = 0;
+  const svgPaths = total === 0
+    ? `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--border)" stroke-width="${stroke}" />`
+    : segments.map(s => {
+        const len = (s.count / total) * circ;
+        const path = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none"
+          stroke="${s.color}" stroke-width="${stroke}"
+          stroke-dasharray="${len} ${circ - len}"
+          stroke-dashoffset="${circ - offset}"
+          transform="rotate(-90 ${cx} ${cy})" />`;
+        offset += len;
+        return path;
+      }).join('');
+
+  const pct = total ? Math.round((done / total) * 100) : 0;
+  document.getElementById('donutSvg').innerHTML = `
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--surface2)" stroke-width="${stroke}" />
+    ${svgPaths}
+    <text x="${cx}" y="${cy - 4}" text-anchor="middle" fill="var(--text)" font-family="Syne,sans-serif" font-weight="800" font-size="18">${pct}%</text>
+    <text x="${cx}" y="${cy + 14}" text-anchor="middle" fill="var(--muted)" font-size="10">completado</text>
+  `;
+
+  document.getElementById('donutLegend').innerHTML = segments.map(s => `
+    <div class="legend-row">
+      <div class="legend-color" style="background:${s.color}"></div>
+      <span style="color:var(--muted)">${s.label}</span>
+      <span class="legend-val">${s.count}</span>
+    </div>`).join('');
+
+  // ── Barras de prioridad ──────────────────────
+  const maxPrio = Math.max(high, medium, low, 1);
+  document.getElementById('priorityBars').innerHTML = [
+    { label:'Alta',  count:high,   color:'#f05b6a' },
+    { label:'Media', count:medium, color:'#f0a05b' },
+    { label:'Baja',  count:low,    color:'#7ee8a2' },
+  ].map(p => `
+    <div class="pbar-row">
+      <div class="pbar-header">
+        <span>${p.label}</span>
+        <span style="color:var(--muted)">${p.count} tarea${p.count!==1?'s':''}</span>
+      </div>
+      <div class="pbar-track">
+        <div class="pbar-fill" style="width:${(p.count/maxPrio)*100}%;background:${p.color}"></div>
+      </div>
+    </div>`).join('');
+
+  // ── Progreso por proyecto ────────────────────
+  if (!projects.length) {
+    document.getElementById('projProgressList').innerHTML = `<div class="empty-state" style="padding:2rem"><div class="empty-icon">📂</div><div class="empty-sub">Sin proyectos aún.</div></div>`;
+    return;
+  }
+
+  document.getElementById('projProgressList').innerHTML = projects.map(p => {
+    const prog = projectProgress(p.id);
+    return `
+    <div class="proj-prog-item">
+      <div class="proj-prog-header">
+        <div class="proj-prog-name">
+          <span class="proj-color-dot" style="background:${p.color}"></span>
+          ${escHtml(p.name)}
+        </div>
+        <div class="proj-prog-stats">${prog.done}/${prog.total} tareas · ${prog.pct}%</div>
+      </div>
+      <div class="prog-track" style="height:8px">
+        <div class="prog-fill" style="width:${prog.pct}%;background:${p.color}"></div>
+      </div>
+      ${p.dueDate ? `<div style="font-size:.73rem;color:var(--muted);margin-top:.35rem">Fecha límite: ${formatDate(p.dueDate)}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+</script>
+</body>
+</html>

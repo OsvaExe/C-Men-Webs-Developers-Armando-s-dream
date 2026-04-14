@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TaskFlow — Dashboard</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+    @media (max-width: 900px) { .dash-grid { grid-template-columns: 1fr; } }
+
+    /* Sección reciente */
+    .section-title { font-family:'Syne',sans-serif; font-weight:700; font-size:1rem; margin-bottom:1rem; }
+    .activity-list { display: flex; flex-direction: column; gap: .5rem; }
+    .activity-item {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: .85rem 1.1rem;
+      display: flex; align-items: center; gap: .85rem;
+      transition: border-color var(--tr);
+    }
+    .activity-item:hover { border-color: var(--accent); }
+    .act-dot {
+      width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+    }
+    .act-info { flex:1; min-width:0; }
+    .act-name { font-size:.88rem; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .act-proj { font-size:.76rem; color:var(--muted); margin-top:.15rem; }
+    .act-date { font-size:.75rem; color:var(--muted); flex-shrink:0; }
+
+    /* Proyectos activos mini */
+    .proj-mini-list { display: flex; flex-direction: column; gap: .65rem; }
+    .proj-mini {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 1rem 1.1rem;
+      transition: border-color var(--tr);
+    }
+    .proj-mini:hover { border-color: var(--accent); }
+    .proj-mini-header { display: flex; align-items: center; justify-content: space-between; margin-bottom:.6rem; }
+    .proj-mini-name { font-size:.88rem; font-weight:600; display: flex; align-items:center; gap:.5rem; }
+    .proj-color-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+    .proj-mini-pct { font-family:'Syne',sans-serif; font-size:.85rem; font-weight:700; }
+
+    /* Quick actions */
+    .quick-actions { display: flex; gap: .75rem; flex-wrap: wrap; }
+    .qa-card {
+      flex: 1; min-width: 130px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.1rem;
+      text-align: center; transition: all var(--tr);
+      display: flex; flex-direction: column; align-items: center; gap: .5rem;
+    }
+    .qa-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: var(--shadow); }
+    .qa-icon { font-size: 1.6rem; }
+    .qa-label { font-size: .82rem; font-weight: 500; color: var(--muted); }
+  </style>
+</head>
+<body>
+<button class="hamburger" id="hamburger">☰</button>
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo"><span class="logo-dot"></span>TaskFlow</div>
+    <nav class="sidebar-nav">
+      <a href="dashboard.html" class="nav-item"><span class="nav-icon">🏠</span>Dashboard</a>
+      <a href="projects.html"  class="nav-item"><span class="nav-icon">📁</span>Proyectos</a>
+      <a href="kanban.html"    class="nav-item"><span class="nav-icon">📋</span>Kanban</a>
+      <a href="calendar.html"  class="nav-item"><span class="nav-icon">📅</span>Calendario</a>
+      <a href="stats.html"     class="nav-item"><span class="nav-icon">📊</span>Estadísticas</a>
+      <div class="nav-divider"></div>
+      <a href="settings.html"  class="nav-item"><span class="nav-icon">⚙️</span>Configuración</a>
+    </nav>
+    <div class="sidebar-bottom">
+      <span class="sidebar-version">v1.0</span>
+      <button class="theme-btn" id="themeBtn">🌙</button>
+    </div>
+  </aside>
+
+  <!-- CONTENT -->
+  <div class="content">
+    <header class="page-header">
+      <div>
+        <h1 class="page-title">Dashboard</h1>
+        <p class="page-sub" id="greeting">Bienvenido de vuelta</p>
+      </div>
+      <div class="page-actions">
+        <a href="projects.html" class="btn btn-primary">＋ Nuevo Proyecto</a>
+      </div>
+    </header>
+
+    <main class="page-main">
+      <!-- Stats -->
+      <div class="stats-grid" id="statsGrid"></div>
+
+      <!-- Acciones rápidas -->
+      <div style="margin-bottom:1.75rem;">
+        <p class="section-title">Acceso rápido</p>
+        <div class="quick-actions">
+          <a href="projects.html" class="qa-card"><div class="qa-icon">📁</div><div class="qa-label">Proyectos</div></a>
+          <a href="kanban.html"   class="qa-card"><div class="qa-icon">📋</div><div class="qa-label">Kanban</div></a>
+          <a href="calendar.html" class="qa-card"><div class="qa-icon">📅</div><div class="qa-label">Calendario</div></a>
+          <a href="stats.html"    class="qa-card"><div class="qa-icon">📊</div><div class="qa-label">Estadísticas</div></a>
+          <a href="settings.html" class="qa-card"><div class="qa-icon">⚙️</div><div class="qa-label">Configuración</div></a>
+        </div>
+      </div>
+
+      <div class="dash-grid">
+        <!-- Actividad reciente (tareas en progreso) -->
+        <div>
+          <p class="section-title">Actividad reciente <span style="color:var(--muted);font-size:.78rem;font-weight:400;">(tareas en progreso)</span></p>
+          <div id="activityList"></div>
+        </div>
+
+        <!-- Proyectos activos con progreso -->
+        <div>
+          <p class="section-title">Progreso de proyectos</p>
+          <div id="projMiniList"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<div id="toastWrap" class="toast-wrap"></div>
+<script src="shared.js"></script>
+<script>
+  seedData();
+  initTheme();
+  initNav();
+
+  function render() {
+    const { projects, tasks } = loadAll();
+
+    // Saludo con hora
+    const h = new Date().getHours();
+    const greet = h < 12 ? 'Buenos días' : h < 19 ? 'Buenas tardes' : 'Buenas noches';
+    document.getElementById('greeting').textContent = greet + ' 👋';
+
+    // Stats
+    const total    = projects.length;
+    const pending  = tasks.filter(t => t.status === 'pending').length;
+    const inProg   = tasks.filter(t => t.status === 'in_progress').length;
+    const done     = tasks.filter(t => t.status === 'done').length;
+
+    document.getElementById('statsGrid').innerHTML = `
+      <div class="stat-card"><div class="stat-icon blue">📁</div><div><div class="stat-value">${total}</div><div class="stat-label">Total proyectos</div></div></div>
+      <div class="stat-card"><div class="stat-icon amber">🕐</div><div><div class="stat-value">${pending}</div><div class="stat-label">Tareas pendientes</div></div></div>
+      <div class="stat-card"><div class="stat-icon blue">⚡</div><div><div class="stat-value">${inProg}</div><div class="stat-label">En progreso</div></div></div>
+      <div class="stat-card"><div class="stat-icon green">✅</div><div><div class="stat-value">${done}</div><div class="stat-label">Completadas</div></div></div>
+    `;
+
+    // Actividad reciente: tareas in_progress
+    const actList = document.getElementById('activityList');
+    const recent = tasks.filter(t => t.status === 'in_progress').slice(0, 6);
+    if (!recent.length) {
+      actList.innerHTML = '<div class="empty-state" style="padding:2rem"><div class="empty-icon">📭</div><div class="empty-sub">No hay tareas en progreso.</div></div>';
+    } else {
+      const statusDot = { pending:'var(--muted)', in_progress:'var(--accent)', done:'var(--accent2)' };
+      actList.innerHTML = '<div class="activity-list">' + recent.map(t => {
+        const proj = projects.find(p => p.id === t.projectId);
+        return `
+          <div class="activity-item">
+            <div class="act-dot" style="background:${statusDot[t.status]}"></div>
+            <div class="act-info">
+              <div class="act-name">${escHtml(t.name)}</div>
+              <div class="act-proj">${proj ? escHtml(proj.name) : 'Sin proyecto'}</div>
+            </div>
+            <div class="act-date">${formatDate(t.dueDate)}</div>
+          </div>`;
+      }).join('') + '</div>';
+    }
+
+    // Proyectos con barra de progreso
+    const projList = document.getElementById('projMiniList');
+    if (!projects.length) {
+      projList.innerHTML = '<div class="empty-state" style="padding:2rem"><div class="empty-icon">📂</div><div class="empty-sub">Sin proyectos aún.</div></div>';
+    } else {
+      projList.innerHTML = '<div class="proj-mini-list">' + projects.map(p => {
+        const prog = projectProgress(p.id);
+        return `
+          <div class="proj-mini">
+            <div class="proj-mini-header">
+              <div class="proj-mini-name">
+                <span class="proj-color-dot" style="background:${p.color}"></span>
+                ${escHtml(p.name)}
+              </div>
+              <div class="proj-mini-pct">${prog.pct}%</div>
+            </div>
+            <div class="prog-track"><div class="prog-fill" style="width:${prog.pct}%;background:${p.color}"></div></div>
+            <div style="font-size:.73rem;color:var(--muted);margin-top:.3rem">${prog.done} de ${prog.total} tareas completadas</div>
+          </div>`;
+      }).join('') + '</div>';
+    }
+  }
+
+  render();
+</script>
+</body>
+</html>

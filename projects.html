@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TaskFlow — Proyectos</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    /* Grid de proyectos */
+    .projects-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1.1rem;
+    }
+
+    /* Tarjeta de proyecto */
+    .project-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.35rem;
+      display: flex; flex-direction: column; gap: .9rem;
+      transition: all var(--tr); position: relative; overflow: hidden;
+      animation: cardIn .3s ease both;
+    }
+    .project-card::before {
+      content: ''; position: absolute; top:0; left:0; right:0; height:3px;
+      background: var(--card-color, var(--accent));
+    }
+    .project-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: var(--shadow); }
+    @keyframes cardIn { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+
+    .card-header { display:flex; align-items:flex-start; justify-content:space-between; gap:.5rem; }
+    .card-title { font-family:'Syne',sans-serif; font-weight:700; font-size:1rem; line-height:1.3; flex:1; }
+    .card-menu-btn {
+      width:28px; height:28px; border-radius:6px;
+      display:flex; align-items:center; justify-content:center;
+      font-size:1.1rem; color:var(--muted); transition:all var(--tr);
+    }
+    .card-menu-btn:hover { background:var(--surface2); color:var(--text); }
+
+    .card-desc {
+      color:var(--muted); font-size:.85rem; line-height:1.55;
+      display:-webkit-box; -webkit-line-clamp:2;
+      -webkit-box-orient:vertical; overflow:hidden;
+    }
+    .card-meta { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:.4rem; }
+    .card-date { font-size:.76rem; color:var(--muted); display:flex; align-items:center; gap:.25rem; }
+    .card-footer {
+      display:flex; align-items:center; justify-content:space-between;
+      padding-top:.75rem; border-top:1px solid var(--border);
+    }
+    .prog-wrap { flex:1; margin-right:.85rem; }
+    .task-count { font-size:.78rem; color:var(--muted); white-space:nowrap; }
+  </style>
+</head>
+<body>
+<button class="hamburger" id="hamburger">☰</button>
+
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo"><span class="logo-dot"></span>TaskFlow</div>
+    <nav class="sidebar-nav">
+      <a href="dashboard.html" class="nav-item"><span class="nav-icon">🏠</span>Dashboard</a>
+      <a href="projects.html"  class="nav-item"><span class="nav-icon">📁</span>Proyectos</a>
+      <a href="kanban.html"    class="nav-item"><span class="nav-icon">📋</span>Kanban</a>
+      <a href="calendar.html"  class="nav-item"><span class="nav-icon">📅</span>Calendario</a>
+      <a href="stats.html"     class="nav-item"><span class="nav-icon">📊</span>Estadísticas</a>
+      <div class="nav-divider"></div>
+      <a href="settings.html"  class="nav-item"><span class="nav-icon">⚙️</span>Configuración</a>
+    </nav>
+    <div class="sidebar-bottom">
+      <span class="sidebar-version">v1.0</span>
+      <button class="theme-btn" id="themeBtn">🌙</button>
+    </div>
+  </aside>
+
+  <div class="content">
+    <header class="page-header">
+      <div>
+        <h1 class="page-title">Proyectos</h1>
+        <p class="page-sub" id="projCount">Cargando…</p>
+      </div>
+      <div class="page-actions">
+        <button class="btn btn-primary" id="newProjBtn">＋ Nuevo Proyecto</button>
+      </div>
+    </header>
+
+    <main class="page-main">
+      <!-- Stats -->
+      <div class="stats-grid" id="statsGrid"></div>
+
+      <!-- Filtros -->
+      <div class="filter-bar">
+        <div class="search-wrap">
+          <span class="si">🔍</span>
+          <input type="text" id="searchInput" placeholder="Buscar proyectos…" />
+        </div>
+        <button class="chip active" data-filter="all">Todos</button>
+        <button class="chip" data-filter="active">Activos</button>
+        <button class="chip" data-filter="paused">Pausados</button>
+        <button class="chip" data-filter="inactive">Inactivos</button>
+      </div>
+
+      <!-- Grid -->
+      <div class="projects-grid" id="projectsGrid"></div>
+    </main>
+  </div>
+</div>
+
+<!-- Modal: Crear / Editar Proyecto -->
+<div class="overlay" id="projOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title" id="modalTitle">Nuevo Proyecto</h2>
+      <button class="modal-close" id="modalClose">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="editId" />
+      <div class="form-group">
+        <label class="form-label">Nombre *</label>
+        <input type="text" id="projName" placeholder="Ej. Rediseño de sitio web" maxlength="60" />
+        <span class="field-error" id="nameErr">El nombre es obligatorio.</span>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Descripción</label>
+        <textarea id="projDesc" placeholder="¿De qué trata este proyecto?"></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Estado</label>
+          <select id="projStatus">
+            <option value="active">Activo</option>
+            <option value="paused">Pausado</option>
+            <option value="inactive">Inactivo</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Fecha límite</label>
+          <input type="date" id="projDate" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Color</label>
+        <div class="swatch-row" id="colorRow"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="cancelBtn">Cancelar</button>
+      <button class="btn btn-primary" id="saveBtn">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Confirmar Eliminar -->
+<div class="overlay" id="confirmOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title">¿Eliminar proyecto?</h2>
+      <button class="modal-close" id="confirmClose">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="color:var(--muted);font-size:.9rem;line-height:1.6">
+        Esto eliminará el proyecto <strong id="delName" style="color:var(--text)"></strong>
+        y todas sus tareas asociadas. Esta acción no se puede deshacer.
+      </p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="confirmCancel">Cancelar</button>
+      <button class="btn btn-danger" id="confirmDelete">Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toastWrap" class="toast-wrap"></div>
+<script src="shared.js"></script>
+<script>
+/* ── STATE ──────────────────────────────────── */
+let filter = 'all';
+let search = '';
+let selectedColor = COLORS[0];
+let delTargetId = null;
+
+/* ── INIT ───────────────────────────────────── */
+seedData();
+initTheme();
+initNav();
+render();
+
+/* ── RENDER ─────────────────────────────────── */
+function render() {
+  const { projects, tasks } = loadAll();
+
+  // Subtítulo
+  document.getElementById('projCount').textContent = `${projects.length} proyecto${projects.length !== 1 ? 's' : ''} en total`;
+
+  // Stats
+  document.getElementById('statsGrid').innerHTML = `
+    <div class="stat-card"><div class="stat-icon blue">📁</div><div><div class="stat-value">${projects.length}</div><div class="stat-label">Total</div></div></div>
+    <div class="stat-card"><div class="stat-icon green">✅</div><div><div class="stat-value">${projects.filter(p=>p.status==='active').length}</div><div class="stat-label">Activos</div></div></div>
+    <div class="stat-card"><div class="stat-icon amber">⏸</div><div><div class="stat-value">${projects.filter(p=>p.status==='paused').length}</div><div class="stat-label">Pausados</div></div></div>
+    <div class="stat-card"><div class="stat-icon red">○</div><div><div class="stat-value">${projects.filter(p=>p.status==='inactive').length}</div><div class="stat-label">Inactivos</div></div></div>
+  `;
+
+  // Lista filtrada
+  const list = projects.filter(p => {
+    const mf = filter === 'all' || p.status === filter;
+    const ms = p.name.toLowerCase().includes(search) || (p.desc||'').toLowerCase().includes(search);
+    return mf && ms;
+  });
+
+  const grid = document.getElementById('projectsGrid');
+  if (!list.length) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+      <div class="empty-icon">📂</div>
+      <div class="empty-title">${projects.length ? 'Sin resultados' : 'Aún no hay proyectos'}</div>
+      <p class="empty-sub">${projects.length ? 'Prueba otro filtro o búsqueda.' : 'Crea tu primer proyecto con el botón de arriba.'}</p>
+    </div>`;
+    return;
+  }
+
+  const statusBadge = {
+    active:   `<span class="badge badge-active">● Activo</span>`,
+    paused:   `<span class="badge badge-paused">⏸ Pausado</span>`,
+    inactive: `<span class="badge badge-inactive">○ Inactivo</span>`,
+  };
+
+  grid.innerHTML = list.map(p => {
+    const prog = projectProgress(p.id);
+    return `
+    <div class="project-card" style="--card-color:${p.color}">
+      <div class="card-header">
+        <div class="card-title">${escHtml(p.name)}</div>
+        <div class="dd-wrap">
+          <button class="card-menu-btn" onclick="toggleMenu('${p.id}')">⋯</button>
+          <div class="dd-menu" id="menu-${p.id}">
+            <button class="dd-item" onclick="openModal('${p.id}')">✏️ Editar</button>
+            <a href="kanban.html?p=${p.id}" class="dd-item">📋 Ver Kanban</a>
+            <button class="dd-item danger" onclick="promptDelete('${p.id}')">🗑️ Eliminar</button>
+          </div>
+        </div>
+      </div>
+      <p class="card-desc">${escHtml(p.desc || 'Sin descripción.')}</p>
+      <div class="card-meta">
+        ${statusBadge[p.status] || ''}
+        ${p.dueDate ? `<span class="card-date">📅 ${formatDate(p.dueDate)}</span>` : ''}
+      </div>
+      <div class="card-footer">
+        <div class="prog-wrap">
+          <div class="prog-meta"><span>Progreso</span><span>${prog.pct}%</span></div>
+          <div class="prog-track"><div class="prog-fill" style="width:${prog.pct}%;background:${p.color}"></div></div>
+        </div>
+        <span class="task-count">${prog.done}/${prog.total} tareas</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ── DROPDOWN ───────────────────────────────── */
+function toggleMenu(id) {
+  const m = document.getElementById('menu-' + id);
+  const open = m.classList.contains('open');
+  closeMenus();
+  if (!open) m.classList.add('open');
+}
+function closeMenus() { document.querySelectorAll('.dd-menu.open').forEach(el => el.classList.remove('open')); }
+document.addEventListener('click', e => { if (!e.target.classList.contains('card-menu-btn')) closeMenus(); });
+
+/* ── MODAL ──────────────────────────────────── */
+function openModal(editId) {
+  const { projects } = loadAll();
+  const p = editId ? projects.find(x => x.id === editId) : null;
+  document.getElementById('modalTitle').textContent = p ? 'Editar Proyecto' : 'Nuevo Proyecto';
+  document.getElementById('editId').value  = p ? p.id : '';
+  document.getElementById('projName').value  = p ? p.name : '';
+  document.getElementById('projDesc').value  = p ? (p.desc || '') : '';
+  document.getElementById('projStatus').value = p ? p.status : 'active';
+  document.getElementById('projDate').value  = p ? (p.dueDate || '') : '';
+  selectedColor = p ? (p.color || COLORS[0]) : COLORS[0];
+  document.getElementById('nameErr').style.display = 'none';
+  renderSwatches();
+  document.getElementById('projOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('projName').focus(), 80);
+}
+function closeModal() { document.getElementById('projOverlay').classList.remove('open'); }
+
+function renderSwatches() {
+  document.getElementById('colorRow').innerHTML = COLORS.map(c => `
+    <div class="swatch${c === selectedColor ? ' sel' : ''}" style="background:${c}"
+         onclick="pickColor('${c}',this)"></div>`).join('');
+}
+function pickColor(c, el) {
+  selectedColor = c;
+  document.querySelectorAll('.swatch').forEach(s => s.classList.remove('sel'));
+  el.classList.add('sel');
+}
+
+document.getElementById('newProjBtn').addEventListener('click', () => openModal());
+document.getElementById('modalClose').addEventListener('click', closeModal);
+document.getElementById('cancelBtn').addEventListener('click', closeModal);
+document.getElementById('projOverlay').addEventListener('click', e => { if (e.target.id==='projOverlay') closeModal(); });
+
+/* ── GUARDAR ────────────────────────────────── */
+document.getElementById('saveBtn').addEventListener('click', () => {
+  const name    = document.getElementById('projName').value.trim();
+  const desc    = document.getElementById('projDesc').value.trim();
+  const status  = document.getElementById('projStatus').value;
+  const dueDate = document.getElementById('projDate').value;
+  const editId  = document.getElementById('editId').value;
+
+  if (!name) { document.getElementById('nameErr').style.display = 'block'; document.getElementById('projName').focus(); return; }
+  document.getElementById('nameErr').style.display = 'none';
+
+  const { projects } = loadAll();
+
+  if (editId) {
+    const idx = projects.findIndex(p => p.id === editId);
+    if (idx !== -1) projects[idx] = { ...projects[idx], name, desc, status, dueDate, color: selectedColor };
+    showToast('Proyecto actualizado exitosamente.', 'success');
+  } else {
+    projects.unshift({ id: genId('p'), name, desc, status, dueDate, color: selectedColor, createdAt: new Date().toISOString() });
+    showToast('Proyecto creado exitosamente.', 'success');
+  }
+
+  saveProjects(projects);
+  render();
+  closeModal();
+});
+
+/* ── ELIMINAR ───────────────────────────────── */
+function promptDelete(id) {
+  closeMenus();
+  delTargetId = id;
+  const { projects } = loadAll();
+  const p = projects.find(x => x.id === id);
+  document.getElementById('delName').textContent = p ? p.name : '';
+  document.getElementById('confirmOverlay').classList.add('open');
+}
+['confirmClose','confirmCancel'].forEach(id => {
+  document.getElementById(id).addEventListener('click', () => document.getElementById('confirmOverlay').classList.remove('open'));
+});
+document.getElementById('confirmDelete').addEventListener('click', () => {
+  const { projects, tasks } = loadAll();
+  saveProjects(projects.filter(p => p.id !== delTargetId));
+  saveTasks(tasks.filter(t => t.projectId !== delTargetId));
+  render();
+  document.getElementById('confirmOverlay').classList.remove('open');
+  showToast('Proyecto eliminado.', 'error');
+});
+
+/* ── FILTROS / BÚSQUEDA ─────────────────────── */
+document.querySelectorAll('.chip').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.chip').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    filter = btn.dataset.filter;
+    render();
+  });
+});
+document.getElementById('searchInput').addEventListener('input', e => {
+  search = e.target.value.toLowerCase().trim();
+  render();
+});
+</script>
+</body>
+</html>

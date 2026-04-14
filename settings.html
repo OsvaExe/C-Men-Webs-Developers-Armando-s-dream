@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TaskFlow — Configuración</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .settings-layout { display:flex; flex-direction:column; gap:1.5rem; max-width:720px; }
+
+    .setting-section {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden;
+    }
+    .section-head {
+      padding: 1rem 1.4rem; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: .7rem;
+    }
+    .section-head-icon { font-size: 1.1rem; }
+    .section-head-text {}
+    .section-head-title { font-family:'Syne',sans-serif; font-weight:700; font-size:.95rem; }
+    .section-head-sub { font-size:.78rem; color:var(--muted); margin-top:.1rem; }
+    .section-body { padding: 1.2rem 1.4rem; display: flex; flex-direction: column; gap: 1rem; }
+
+    /* Toggle switch */
+    .toggle-row { display:flex; align-items:center; justify-content:space-between; gap:1rem; }
+    .toggle-info {}
+    .toggle-label { font-size:.9rem; font-weight:500; }
+    .toggle-desc  { font-size:.78rem; color:var(--muted); margin-top:.15rem; }
+    .toggle-switch {
+      position:relative; width:44px; height:24px; flex-shrink:0;
+    }
+    .toggle-switch input { opacity:0; width:0; height:0; }
+    .toggle-track {
+      position:absolute; inset:0; border-radius:99px;
+      background:var(--border); cursor:pointer; transition:background var(--tr);
+    }
+    .toggle-track::after {
+      content:''; position:absolute;
+      width:18px; height:18px; border-radius:50%;
+      background:#fff; top:3px; left:3px;
+      transition:transform var(--tr);
+    }
+    input:checked + .toggle-track { background:var(--accent); }
+    input:checked + .toggle-track::after { transform:translateX(20px); }
+
+    /* User list */
+    .user-list { display:flex; flex-direction:column; gap:.5rem; }
+    .user-item {
+      display:flex; align-items:center; gap:.75rem;
+      padding:.7rem .9rem; background:var(--surface2);
+      border-radius:var(--radius-sm); border:1px solid var(--border);
+    }
+    .user-avatar {
+      width:32px; height:32px; border-radius:50%;
+      background:var(--accent); display:flex; align-items:center;
+      justify-content:center; font-size:.85rem; font-weight:700;
+      color:#fff; flex-shrink:0;
+    }
+    .user-name { flex:1; font-size:.88rem; font-weight:500; }
+    .user-role { font-size:.73rem; color:var(--muted); }
+    .user-del {
+      width:26px; height:26px; border-radius:6px;
+      display:flex; align-items:center; justify-content:center;
+      color:var(--muted); font-size:.9rem; transition:all var(--tr);
+    }
+    .user-del:hover { background:rgba(240,91,106,.15); color:var(--danger); }
+
+    /* Add user form */
+    .add-user-row { display:flex; gap:.65rem; }
+    .add-user-row input { flex:1; }
+
+    /* Data actions */
+    .data-actions { display:flex; flex-wrap:wrap; gap:.65rem; }
+
+    /* Danger zone */
+    .danger-zone { border-color: var(--danger) !important; }
+    .danger-zone .section-head { border-color: rgba(240,91,106,.3); background: rgba(240,91,106,.05); }
+
+    /* Import file hidden */
+    #importFile { display:none; }
+  </style>
+</head>
+<body>
+<button class="hamburger" id="hamburger">☰</button>
+
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo"><span class="logo-dot"></span>TaskFlow</div>
+    <nav class="sidebar-nav">
+      <a href="dashboard.html" class="nav-item"><span class="nav-icon">🏠</span>Dashboard</a>
+      <a href="projects.html"  class="nav-item"><span class="nav-icon">📁</span>Proyectos</a>
+      <a href="kanban.html"    class="nav-item"><span class="nav-icon">📋</span>Kanban</a>
+      <a href="calendar.html"  class="nav-item"><span class="nav-icon">📅</span>Calendario</a>
+      <a href="stats.html"     class="nav-item"><span class="nav-icon">📊</span>Estadísticas</a>
+      <div class="nav-divider"></div>
+      <a href="settings.html"  class="nav-item"><span class="nav-icon">⚙️</span>Configuración</a>
+    </nav>
+    <div class="sidebar-bottom">
+      <span class="sidebar-version">v1.0</span>
+      <button class="theme-btn" id="themeBtn">🌙</button>
+    </div>
+  </aside>
+
+  <div class="content">
+    <header class="page-header">
+      <div>
+        <h1 class="page-title">Configuración</h1>
+        <p class="page-sub">Personaliza y gestiona los datos de la aplicación.</p>
+      </div>
+    </header>
+
+    <main class="page-main">
+      <div class="settings-layout">
+
+        <!-- Apariencia -->
+        <div class="setting-section">
+          <div class="section-head">
+            <span class="section-head-icon">🎨</span>
+            <div class="section-head-text">
+              <div class="section-head-title">Apariencia</div>
+              <div class="section-head-sub">Personaliza el tema de la interfaz.</div>
+            </div>
+          </div>
+          <div class="section-body">
+            <div class="toggle-row">
+              <div class="toggle-info">
+                <div class="toggle-label">Modo oscuro</div>
+                <div class="toggle-desc">Cambia entre tema claro y oscuro.</div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="darkModeToggle" />
+                <span class="toggle-track"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Usuarios / Perfiles -->
+        <div class="setting-section">
+          <div class="section-head">
+            <span class="section-head-icon">👥</span>
+            <div class="section-head-text">
+              <div class="section-head-title">Perfiles de usuario</div>
+              <div class="section-head-sub">Agrega nombres para asignar tareas.</div>
+            </div>
+          </div>
+          <div class="section-body">
+            <div class="user-list" id="userList"></div>
+            <div class="add-user-row">
+              <input type="text" id="newUserName" placeholder="Nombre del usuario" maxlength="40" />
+              <button class="btn btn-primary" id="addUserBtn">Agregar</button>
+            </div>
+            <span class="field-error" id="userErr" style="display:none">El nombre es obligatorio.</span>
+          </div>
+        </div>
+
+        <!-- Datos -->
+        <div class="setting-section">
+          <div class="section-head">
+            <span class="section-head-icon">💾</span>
+            <div class="section-head-text">
+              <div class="section-head-title">Datos</div>
+              <div class="section-head-sub">Exporta o importa tus datos en formato JSON.</div>
+            </div>
+          </div>
+          <div class="section-body">
+            <div class="data-actions">
+              <button class="btn btn-ghost" id="exportBtn">📤 Exportar JSON</button>
+              <button class="btn btn-ghost" id="importBtn">📥 Importar JSON</button>
+              <input type="file" id="importFile" accept=".json" />
+            </div>
+            <p style="font-size:.78rem;color:var(--muted)">
+              La exportación incluye todos los proyectos, tareas y usuarios almacenados.
+              Al importar, los datos actuales serán reemplazados.
+            </p>
+          </div>
+        </div>
+
+        <!-- Zona de peligro -->
+        <div class="setting-section danger-zone">
+          <div class="section-head">
+            <span class="section-head-icon">⚠️</span>
+            <div class="section-head-text">
+              <div class="section-head-title">Zona de peligro</div>
+              <div class="section-head-sub">Acciones irreversibles sobre los datos.</div>
+            </div>
+          </div>
+          <div class="section-body">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem">
+              <div>
+                <div style="font-size:.9rem;font-weight:500">Eliminar todos los datos</div>
+                <div style="font-size:.78rem;color:var(--muted);margin-top:.15rem">Borra permanentemente todos los proyectos, tareas y usuarios.</div>
+              </div>
+              <button class="btn btn-danger" id="clearBtn">🗑️ Limpiar todo</button>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /settings-layout -->
+    </main>
+  </div>
+</div>
+
+<!-- Confirm: limpiar datos -->
+<div class="overlay" id="clearOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title">¿Eliminar todos los datos?</h2>
+      <button class="modal-close" id="clearClose">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="color:var(--muted);font-size:.9rem;line-height:1.6">
+        Esto eliminará permanentemente todos los proyectos, tareas y usuarios almacenados en la aplicación.
+        <strong style="color:var(--danger)">Esta acción no se puede deshacer.</strong>
+      </p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="clearCancel">Cancelar</button>
+      <button class="btn btn-danger" id="clearConfirm">Sí, eliminar todo</button>
+    </div>
+  </div>
+</div>
+
+<div id="toastWrap" class="toast-wrap"></div>
+<script src="shared.js"></script>
+<script>
+seedData();
+initTheme();
+initNav();
+
+/* ── TEMA TOGGLE ─────────────────────────────── */
+const darkToggle = document.getElementById('darkModeToggle');
+darkToggle.checked = getTheme() === 'dark';
+darkToggle.addEventListener('change', () => {
+  const t = darkToggle.checked ? 'dark' : 'light';
+  applyTheme(t);
+});
+
+/* ── USUARIOS ────────────────────────────────── */
+function renderUsers() {
+  const { users } = loadAll();
+  const list = document.getElementById('userList');
+  if (!users.length) {
+    list.innerHTML = '<div style="font-size:.84rem;color:var(--muted)">No hay usuarios aún.</div>';
+    return;
+  }
+  const roleLabel = { admin:'Admin', member:'Miembro' };
+  list.innerHTML = users.map(u => `
+    <div class="user-item">
+      <div class="user-avatar">${escHtml(u.name.charAt(0).toUpperCase())}</div>
+      <div class="user-name">${escHtml(u.name)}</div>
+      <div class="user-role">${roleLabel[u.role] || u.role}</div>
+      <button class="user-del" onclick="deleteUser('${u.id}')" title="Eliminar">✕</button>
+    </div>`).join('');
+}
+
+document.getElementById('addUserBtn').addEventListener('click', addUser);
+document.getElementById('newUserName').addEventListener('keydown', e => { if (e.key === 'Enter') addUser(); });
+
+function addUser() {
+  const name = document.getElementById('newUserName').value.trim();
+  const errEl = document.getElementById('userErr');
+  if (!name) { errEl.style.display = 'block'; return; }
+  errEl.style.display = 'none';
+
+  const { users } = loadAll();
+  users.push({ id: genId('u'), name, role: 'member' });
+  saveUsers(users);
+  document.getElementById('newUserName').value = '';
+  renderUsers();
+  showToast(`Usuario "${name}" agregado.`, 'success');
+}
+
+function deleteUser(id) {
+  const { users } = loadAll();
+  saveUsers(users.filter(u => u.id !== id));
+  renderUsers();
+  showToast('Usuario eliminado.', 'error');
+}
+
+/* ── EXPORTAR JSON ───────────────────────────── */
+document.getElementById('exportBtn').addEventListener('click', () => {
+  const data = loadAll();
+  const json = JSON.stringify(data, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `taskflow_backup_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Datos exportados exitosamente.', 'success');
+});
+
+/* ── IMPORTAR JSON ───────────────────────────── */
+document.getElementById('importBtn').addEventListener('click', () => {
+  document.getElementById('importFile').click();
+});
+
+document.getElementById('importFile').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      // Validar estructura mínima
+      if (!Array.isArray(data.projects) || !Array.isArray(data.tasks) || !Array.isArray(data.users)) {
+        throw new Error('Estructura inválida');
+      }
+      saveProjects(data.projects);
+      saveTasks(data.tasks);
+      saveUsers(data.users);
+      renderUsers();
+      showToast('Datos importados exitosamente.', 'success');
+    } catch {
+      showToast('Error: el archivo JSON no es válido.', 'warning');
+    }
+    e.target.value = '';
+  };
+  reader.readAsText(file);
+});
+
+/* ── LIMPIAR DATOS ───────────────────────────── */
+document.getElementById('clearBtn').addEventListener('click', () => {
+  document.getElementById('clearOverlay').classList.add('open');
+});
+['clearClose','clearCancel'].forEach(id => {
+  document.getElementById(id).addEventListener('click', () => document.getElementById('clearOverlay').classList.remove('open'));
+});
+document.getElementById('clearConfirm').addEventListener('click', () => {
+  saveProjects([]);
+  saveTasks([]);
+  saveUsers([]);
+  document.getElementById('clearOverlay').classList.remove('open');
+  renderUsers();
+  showToast('Todos los datos fueron eliminados.', 'error');
+});
+
+/* ── INIT ───────────────────────────────────── */
+renderUsers();
+</script>
+</body>
+</html>
