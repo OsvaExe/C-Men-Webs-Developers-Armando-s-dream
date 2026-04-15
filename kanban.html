@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TaskFlow — Kanban</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    /* Selector de proyecto */
+    .proj-selector { display:flex; align-items:center; gap:.75rem; flex-wrap:wrap; margin-bottom:1.5rem; }
+    .proj-selector label { font-size:.85rem; color:var(--muted); font-weight:500; flex-shrink:0; }
+    .proj-selector select { max-width:280px; }
+
+    /* Tablero */
+    .kanban-board { display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; align-items:start; }
+    @media (max-width:900px) { .kanban-board { grid-template-columns:1fr; } }
+
+    .kanban-col {
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:var(--radius); display:flex; flex-direction:column;
+      min-height:400px;
+    }
+    .col-header {
+      padding:.9rem 1rem; border-bottom:1px solid var(--border);
+      display:flex; align-items:center; justify-content:space-between;
+      border-radius:var(--radius) var(--radius) 0 0;
+    }
+    .col-title {
+      font-family:'Syne',sans-serif; font-weight:700; font-size:.88rem;
+      display:flex; align-items:center; gap:.5rem;
+    }
+    .col-count {
+      background:var(--surface2); color:var(--muted);
+      font-size:.72rem; font-weight:600; padding:.15rem .5rem;
+      border-radius:99px; border:1px solid var(--border);
+    }
+    .col-body { padding:.75rem; display:flex; flex-direction:column; gap:.6rem; flex:1; }
+
+    /* Tarjeta de tarea */
+    .task-card {
+      background:var(--surface2); border:1px solid var(--border);
+      border-radius:var(--radius-sm); padding:.9rem 1rem;
+      display:flex; flex-direction:column; gap:.5rem;
+      animation:cardIn .25s ease both;
+    }
+    @keyframes cardIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+    .task-card-header { display:flex; align-items:flex-start; justify-content:space-between; gap:.5rem; }
+    .task-name { font-size:.88rem; font-weight:500; line-height:1.35; flex:1; }
+
+    /* Botón eliminar en la tarjeta */
+    .task-del-btn {
+      width:22px; height:22px; border-radius:4px; flex-shrink:0;
+      display:flex; align-items:center; justify-content:center;
+      font-size:.75rem; color:var(--muted); transition:all var(--tr);
+    }
+    .task-del-btn:hover { background:rgba(240,91,106,.15); color:var(--danger); }
+
+    .task-desc { font-size:.78rem; color:var(--muted); line-height:1.45; }
+    .task-meta { display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; }
+    .task-date { font-size:.73rem; color:var(--muted); display:flex; align-items:center; gap:.2rem; }
+    .task-assignee {
+      font-size:.72rem; font-weight:500;
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:99px; padding:.15rem .55rem; color:var(--muted);
+    }
+
+    /* Sin proyecto seleccionado */
+    .no-project {
+      display:flex; flex-direction:column; align-items:center;
+      justify-content:center; padding:4rem 2rem;
+      text-align:center; gap:.75rem; color:var(--muted);
+    }
+  </style>
+</head>
+<body>
+<button class="hamburger" id="hamburger">☰</button>
+
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo"><span class="logo-dot"></span>TaskFlow</div>
+    <nav class="sidebar-nav">
+      <a href="dashboard.html" class="nav-item"><span class="nav-icon">🏠</span>Dashboard</a>
+      <a href="projects.html"  class="nav-item"><span class="nav-icon">📁</span>Proyectos</a>
+      <a href="kanban.html"    class="nav-item"><span class="nav-icon">📋</span>Kanban</a>
+      <a href="calendar.html"  class="nav-item"><span class="nav-icon">📅</span>Calendario</a>
+      <a href="stats.html"     class="nav-item"><span class="nav-icon">📊</span>Estadísticas</a>
+      <div class="nav-divider"></div>
+      <a href="settings.html"  class="nav-item"><span class="nav-icon">⚙️</span>Configuración</a>
+    </nav>
+    <div class="sidebar-bottom">
+      <span class="sidebar-version">v1.0</span>
+      <button class="theme-btn" id="themeBtn">🌙</button>
+    </div>
+  </aside>
+
+  <div class="content">
+    <header class="page-header">
+      <div>
+        <h1 class="page-title">Tablero Kanban</h1>
+        <p class="page-sub" id="boardSub">Visualiza y crea tareas por estado.</p>
+      </div>
+      <div class="page-actions">
+        <button class="btn btn-primary" id="newTaskBtn">＋ Nueva Tarea</button>
+      </div>
+    </header>
+
+    <main class="page-main">
+      <!-- Selector de proyecto -->
+      <div class="proj-selector">
+        <label>Proyecto:</label>
+        <select id="projSelect"></select>
+      </div>
+
+      <!-- Tablero -->
+      <div id="boardWrap"></div>
+    </main>
+  </div>
+</div>
+
+<!-- Modal: Nueva Tarea -->
+<div class="overlay" id="taskOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title">Nueva Tarea</h2>
+      <button class="modal-close" id="taskModalClose">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Nombre *</label>
+        <input type="text" id="taskName" placeholder="Ej. Diseñar pantalla de login" maxlength="80" />
+        <span class="field-error" id="taskNameErr">El nombre es obligatorio.</span>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Descripción</label>
+        <textarea id="taskDesc" placeholder="Detalla lo que hay que hacer…"></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Estado inicial</label>
+          <select id="taskStatus">
+            <option value="pending">Pendiente</option>
+            <option value="in_progress">En Progreso</option>
+            <option value="done">Terminado</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Fecha límite</label>
+          <input type="date" id="taskDate" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Asignado a</label>
+        <select id="taskAssignee"></select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="taskCancel">Cancelar</button>
+      <button class="btn btn-primary" id="taskSave">Guardar Tarea</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Confirmar eliminar tarea -->
+<div class="overlay" id="delTaskOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title">¿Eliminar tarea?</h2>
+      <button class="modal-close" id="delTaskClose">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="color:var(--muted);font-size:.9rem;line-height:1.6">
+        ¿Estás seguro de que deseas eliminar la tarea
+        <strong id="delTaskName" style="color:var(--text)"></strong>?
+        Esta acción no se puede deshacer.
+      </p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="delTaskCancel">Cancelar</button>
+      <button class="btn btn-danger" id="delTaskConfirm">Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toastWrap" class="toast-wrap"></div>
+<script src="shared.js"></script>
+<script>
+let currentProjId  = '';
+let delTaskTargetId = '';
+
+const COLS = [
+  { status:'pending',     label:'Pendiente',  icon:'🕐' },
+  { status:'in_progress', label:'En Progreso', icon:'⚡' },
+  { status:'done',        label:'Terminado',   icon:'✅' },
+];
+
+/* ── INIT ───────────────────────────────────── */
+seedData();
+initTheme();
+initNav();
+
+const qp = new URLSearchParams(window.location.search).get('p');
+buildProjSelect(qp);
+renderBoard();
+
+/* ── SELECTOR DE PROYECTO ───────────────────── */
+function buildProjSelect(preselect) {
+  const { projects } = loadAll();
+  const sel = document.getElementById('projSelect');
+  sel.innerHTML = '<option value="">— Selecciona un proyecto —</option>' +
+    projects.map(p =>
+      `<option value="${p.id}"${p.id === preselect ? ' selected' : ''}>${escHtml(p.name)}</option>`
+    ).join('');
+  currentProjId = preselect || '';
+  sel.addEventListener('change', () => { currentProjId = sel.value; renderBoard(); });
+}
+
+/* ── RENDER TABLERO ─────────────────────────── */
+function renderBoard() {
+  const wrap = document.getElementById('boardWrap');
+
+  if (!currentProjId) {
+    wrap.innerHTML = `
+      <div class="no-project">
+        <div style="font-size:3rem;opacity:.3">📋</div>
+        <div style="font-family:'Syne',sans-serif;font-size:1.05rem;color:var(--text);font-weight:700">Selecciona un proyecto</div>
+        <p style="font-size:.86rem;max-width:260px;line-height:1.5">Elige un proyecto del menú de arriba para ver su tablero Kanban.</p>
+      </div>`;
+    return;
+  }
+
+  const { tasks, users, projects } = loadAll();
+  const proj = projects.find(p => p.id === currentProjId);
+  const projTasks = tasks.filter(t => t.projectId === currentProjId);
+
+  document.getElementById('boardSub').textContent = proj ? `Proyecto: ${proj.name}` : '';
+
+  wrap.innerHTML = `<div class="kanban-board">${
+    COLS.map(col => {
+      const colTasks = projTasks.filter(t => t.status === col.status);
+      return `
+      <div class="kanban-col">
+        <div class="col-header">
+          <div class="col-title">${col.icon} ${col.label}</div>
+          <span class="col-count">${colTasks.length}</span>
+        </div>
+        <div class="col-body">
+          ${colTasks.length
+            ? colTasks.map(t => taskCard(t, users)).join('')
+            : `<div style="flex:1"></div>`}
+        </div>
+      </div>`;
+    }).join('')
+  }</div>`;
+}
+
+function taskCard(t, users) {
+  const user = users.find(u => u.id === t.assignedTo);
+  return `
+  <div class="task-card">
+    <div class="task-card-header">
+      <div class="task-name">${escHtml(t.name)}</div>
+      <button class="task-del-btn" onclick="promptDelTask('${t.id}')" title="Eliminar tarea">✕</button>
+    </div>
+    ${t.desc ? `<div class="task-desc">${escHtml(t.desc)}</div>` : ''}
+    <div class="task-meta">
+      ${user     ? `<span class="task-assignee">👤 ${escHtml(user.name.split(' ')[0])}</span>` : ''}
+      ${t.dueDate ? `<span class="task-date">📅 ${formatDate(t.dueDate)}</span>` : ''}
+    </div>
+  </div>`;
+}
+
+/* ── MODAL NUEVA TAREA ──────────────────────── */
+function openTaskModal() {
+  const { users } = loadAll();
+
+  document.getElementById('taskName').value  = '';
+  document.getElementById('taskDesc').value  = '';
+  document.getElementById('taskStatus').value = 'pending';
+  document.getElementById('taskDate').value  = '';
+  document.getElementById('taskNameErr').style.display = 'none';
+
+  const sel = document.getElementById('taskAssignee');
+  sel.innerHTML = '<option value="">Sin asignar</option>' +
+    users.map(u => `<option value="${u.id}">${escHtml(u.name)}</option>`).join('');
+
+  document.getElementById('taskOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('taskName').focus(), 80);
+}
+
+document.getElementById('newTaskBtn').addEventListener('click', () => {
+  if (!currentProjId) {
+    showToast('Selecciona un proyecto primero.', 'warning');
+    return;
+  }
+  openTaskModal();
+});
+
+function closeTaskModal() { document.getElementById('taskOverlay').classList.remove('open'); }
+document.getElementById('taskModalClose').addEventListener('click', closeTaskModal);
+document.getElementById('taskCancel').addEventListener('click', closeTaskModal);
+document.getElementById('taskOverlay').addEventListener('click', e => {
+  if (e.target.id === 'taskOverlay') closeTaskModal();
+});
+
+/* ── GUARDAR TAREA ──────────────────────────── */
+document.getElementById('taskSave').addEventListener('click', () => {
+  const name       = document.getElementById('taskName').value.trim();
+  const desc       = document.getElementById('taskDesc').value.trim();
+  const status     = document.getElementById('taskStatus').value;
+  const dueDate    = document.getElementById('taskDate').value;
+  const assignedTo = document.getElementById('taskAssignee').value;
+
+  if (!name) {
+    document.getElementById('taskNameErr').style.display = 'block';
+    document.getElementById('taskName').focus();
+    return;
+  }
+  document.getElementById('taskNameErr').style.display = 'none';
+
+  const { tasks } = loadAll();
+  tasks.push({
+    id: genId('t'),
+    projectId: currentProjId,
+    name, desc, status, dueDate, assignedTo,
+    priority: 'medium', // valor por defecto, sin opción visible aún
+    createdAt: new Date().toISOString(),
+  });
+
+  saveTasks(tasks);
+  renderBoard();
+  closeTaskModal();
+  showToast('Tarea creada exitosamente.', 'success');
+});
+
+/* ── ELIMINAR TAREA ─────────────────────────── */
+function promptDelTask(id) {
+  delTaskTargetId = id;
+  const { tasks } = loadAll();
+  const t = tasks.find(x => x.id === id);
+  document.getElementById('delTaskName').textContent = t ? t.name : '';
+  document.getElementById('delTaskOverlay').classList.add('open');
+}
+
+function closeDelModal() { document.getElementById('delTaskOverlay').classList.remove('open'); }
+document.getElementById('delTaskClose').addEventListener('click', closeDelModal);
+document.getElementById('delTaskCancel').addEventListener('click', closeDelModal);
+
+document.getElementById('delTaskConfirm').addEventListener('click', () => {
+  const { tasks } = loadAll();
+  saveTasks(tasks.filter(t => t.id !== delTaskTargetId));
+  renderBoard();
+  closeDelModal();
+  showToast('Tarea eliminada.', 'error');
+});
+</script>
+</body>
+</html>
