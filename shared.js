@@ -10,7 +10,28 @@ const KEYS = {
   tasks:    'tf_tasks',
   users:    'tf_users',
   theme:    'tf_theme',
+  session:  'tf_session',
 };
+
+// ── SESIÓN ────────────────────────────────────
+function getSession() {
+  try { return JSON.parse(localStorage.getItem(KEYS.session)) || null; }
+  catch { return null; }
+}
+function setSession(user) {
+  localStorage.setItem(KEYS.session, JSON.stringify(user));
+}
+function clearSession() {
+  localStorage.removeItem(KEYS.session);
+}
+// Redirige a login si no hay sesión activa.
+function checkAuth() {
+  if (!getSession()) { window.location.href = 'login.html'; }
+}
+function logout() {
+  clearSession();
+  window.location.href = 'login.html';
+}
 
 const COLORS = [
   '#5b6af0','#7ee8a2','#f0a05b','#f05b6a',
@@ -92,6 +113,27 @@ function initNav() {
   const btn = document.getElementById('themeBtn');
   if (btn) btn.addEventListener('click', toggleTheme);
 
+  // Usuario actual en el sidebar
+  const userSlot = document.getElementById('sidebarUser');
+  if (userSlot) {
+    const me = getSession();
+    if (me) {
+      const isAdmin = me.role === 'admin';
+      const initial = me.name.charAt(0).toUpperCase();
+      userSlot.innerHTML = `
+        <div class="sb-user-card">
+          <div class="sb-avatar">${initial}</div>
+          <div class="sb-user-info">
+            <div class="sb-user-name">${escHtml(me.name)}</div>
+            <div class="sb-user-role ${isAdmin ? 'sb-admin' : 'sb-member'}">
+              ${isAdmin ? '🔐 Admin' : '👤 Miembro'}
+            </div>
+          </div>
+          <button class="sb-logout" onclick="logout()" title="Cerrar sesión">↩</button>
+        </div>`;
+    }
+  }
+
   // Hamburger mobile
   const ham     = document.getElementById('hamburger');
   const sidebar = document.querySelector('.sidebar');
@@ -104,9 +146,22 @@ function initNav() {
   }
 }
 
+// ── PROTECCIÓN DE ADMIN ───────────────────────
+// Se ejecuta en cada carga. Si no existe ningún usuario con
+// role:'admin', lo recrea automáticamente.
+function ensureAdmin() {
+  const { users } = loadAll();
+  const hasAdmin = users.some(u => u.role === 'admin');
+  if (!hasAdmin) {
+    users.unshift({ id: 'u_admin', name: 'Administrador', username: 'admin', password: 'admin123', role: 'admin' });
+    saveUsers(users);
+  }
+}
+
 // ── DATOS DE EJEMPLO ──────────────────────────
 function seedData() {
   const data = loadAll();
+  ensureAdmin(); // siempre verificar que exista un admin
   if (data.projects.length) return; // ya hay datos
 
   const projects = [
@@ -116,9 +171,9 @@ function seedData() {
   ];
 
   const users = [
-    { id:'u_1', name:'Ana García',     role:'admin'  },
-    { id:'u_2', name:'Luis Martínez',  role:'member' },
-    { id:'u_3', name:'Sara López',     role:'member' },
+    { id:'u_1', name:'Ana García',    username:'ana',  password:'1234', role:'admin'  },
+    { id:'u_2', name:'Luis Martínez', username:'luis', password:'1234', role:'member' },
+    { id:'u_3', name:'Sara López',    username:'sara', password:'1234', role:'member' },
   ];
 
   const today = new Date();

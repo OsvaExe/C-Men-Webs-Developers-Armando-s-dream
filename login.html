@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TaskFlow — Iniciar sesión</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .theme-toggle-corner {
+      position: fixed; top: 1rem; right: 1rem;
+    }
+
+    /* Indicador de contraseña visible */
+    .pass-wrap { position: relative; }
+    .pass-wrap input { padding-right: 2.6rem; }
+    .pass-toggle {
+      position: absolute; right: .75rem; top: 50%;
+      transform: translateY(-50%);
+      background: none; border: none; cursor: pointer;
+      color: var(--muted); font-size: .9rem;
+      transition: color var(--tr);
+    }
+    .pass-toggle:hover { color: var(--text); }
+
+    /* Separador de credenciales demo */
+    .demo-hint {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: .75rem 1rem;
+      font-size: .76rem; color: var(--muted); line-height: 1.6;
+    }
+    .demo-hint strong { color: var(--text); font-weight: 600; }
+
+    /* Error de login */
+    .login-error-box {
+      background: rgba(240,91,106,.1); border: 1px solid rgba(240,91,106,.3);
+      border-radius: var(--radius-sm); padding: .65rem .9rem;
+      font-size: .82rem; color: var(--danger);
+      display: none; align-items: center; gap: .5rem;
+    }
+    .login-error-box.visible { display: flex; }
+  </style>
+</head>
+<body>
+
+<button class="icon-btn theme-toggle-corner" id="themeBtn">🌙</button>
+
+<div class="login-page">
+  <div class="login-card">
+
+    <!-- Encabezado -->
+    <div class="login-header">
+      <div class="login-logo">
+        <span class="logo-dot"></span>TaskFlow
+      </div>
+      <div class="login-title">Iniciar sesión</div>
+      <div class="login-sub">Ingresa tus credenciales para continuar</div>
+    </div>
+
+    <!-- Formulario -->
+    <div class="login-body">
+
+      <!-- Error box -->
+      <div class="login-error-box" id="loginError">
+        <span>⚠️</span>
+        <span id="loginErrorMsg">Usuario o contraseña incorrectos.</span>
+      </div>
+
+      <!-- Usuario -->
+      <div class="form-group">
+        <label class="form-label">Usuario</label>
+        <input
+          type="text"
+          id="inputUsername"
+          placeholder="Ej. ana"
+          autocomplete="username"
+          autocapitalize="none"
+          spellcheck="false"
+        />
+      </div>
+
+      <!-- Contraseña -->
+      <div class="form-group">
+        <label class="form-label">Contraseña</label>
+        <div class="pass-wrap">
+          <input
+            type="password"
+            id="inputPassword"
+            placeholder="••••••••"
+            autocomplete="current-password"
+          />
+          <button class="pass-toggle" id="togglePass" tabindex="-1" type="button">👁</button>
+        </div>
+      </div>
+
+      <!-- Hint de demo -->
+      <div class="demo-hint">
+        💡 <strong>Usuarios de prueba</strong><br>
+        Usuario: <strong>ana</strong> &nbsp;·&nbsp; Contraseña: <strong>1234</strong><br>
+        Usuario: <strong>luis</strong> &nbsp;·&nbsp; Contraseña: <strong>1234</strong>
+      </div>
+
+    </div>
+
+    <!-- Botón -->
+    <div class="login-footer">
+      <button class="btn btn-primary" id="loginBtn"
+        style="width:100%;justify-content:center;padding:.7rem;font-size:.92rem">
+        Entrar
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<script src="shared.js"></script>
+<script>
+  // Si ya hay sesión activa, ir directo al dashboard
+  if (getSession()) window.location.href = 'dashboard.html';
+
+  seedData();
+  initTheme();
+
+  document.getElementById('themeBtn').addEventListener('click', toggleTheme);
+
+  /* ── MOSTRAR / OCULTAR CONTRASEÑA ─────────── */
+  const passInput  = document.getElementById('inputPassword');
+  const toggleBtn  = document.getElementById('togglePass');
+  let passVisible  = false;
+
+  toggleBtn.addEventListener('click', () => {
+    passVisible = !passVisible;
+    passInput.type = passVisible ? 'text' : 'password';
+    toggleBtn.textContent = passVisible ? '🙈' : '👁';
+  });
+
+  /* ── LOGIN ────────────────────────────────── */
+  function attemptLogin() {
+    const username = document.getElementById('inputUsername').value.trim().toLowerCase();
+    const password = document.getElementById('inputPassword').value;
+    const errorBox = document.getElementById('loginError');
+    const errorMsg = document.getElementById('loginErrorMsg');
+
+    // Validar campos vacíos
+    if (!username || !password) {
+      errorMsg.textContent = 'Por favor completa todos los campos.';
+      errorBox.classList.add('visible');
+      return;
+    }
+
+    // Buscar usuario por username
+    const { users } = loadAll();
+    const user = users.find(u =>
+      (u.username || u.name).toLowerCase() === username &&
+      u.password === password
+    );
+
+    if (!user) {
+      errorMsg.textContent = 'Usuario o contraseña incorrectos.';
+      errorBox.classList.add('visible');
+      document.getElementById('inputPassword').value = '';
+      document.getElementById('inputPassword').focus();
+      return;
+    }
+
+    errorBox.classList.remove('visible');
+    setSession(user);
+    window.location.href = 'dashboard.html';
+  }
+
+  document.getElementById('loginBtn').addEventListener('click', attemptLogin);
+
+  // Permitir Enter en cualquier campo
+  ['inputUsername', 'inputPassword'].forEach(id => {
+    document.getElementById(id).addEventListener('keydown', e => {
+      if (e.key === 'Enter') attemptLogin();
+    });
+  });
+
+  // Limpiar error al escribir
+  ['inputUsername', 'inputPassword'].forEach(id => {
+    document.getElementById(id).addEventListener('input', () => {
+      document.getElementById('loginError').classList.remove('visible');
+    });
+  });
+
+  // Focus automático
+  document.getElementById('inputUsername').focus();
+</script>
+</body>
+</html>

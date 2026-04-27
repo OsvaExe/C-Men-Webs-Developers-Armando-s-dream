@@ -27,7 +27,6 @@
       display:flex; align-items:center; gap:.75rem;
       padding:.7rem .9rem; background:var(--surface2);
       border-radius:var(--radius-sm); border:1px solid var(--border);
-      transition: border-color var(--tr);
     }
     .user-avatar {
       width:34px; height:34px; border-radius:50%;
@@ -36,10 +35,11 @@
     }
     .user-info { flex:1; min-width:0; }
     .user-name { font-size:.9rem; font-weight:500; }
+    .user-username { font-size:.75rem; color:var(--muted); margin-top:.1rem; }
     .user-role-badge {
       display:inline-flex; align-items:center; gap:.25rem;
       font-size:.7rem; font-weight:600; padding:.15rem .55rem;
-      border-radius:99px; margin-top:.2rem;
+      border-radius:99px;
     }
     .role-admin  { background:rgba(91,106,240,.15); color:var(--accent); }
     .role-member { background:rgba(107,114,144,.15); color:var(--muted); }
@@ -47,21 +47,25 @@
     .user-del {
       width:28px; height:28px; border-radius:6px;
       display:flex; align-items:center; justify-content:center;
-      color:var(--muted); font-size:.85rem;
-      transition:all var(--tr); flex-shrink:0;
+      color:var(--muted); font-size:.85rem; transition:all var(--tr);
     }
     .user-del:hover { background:rgba(240,91,106,.15); color:var(--danger); }
-
-    .admin-lock {
-      font-size:.75rem; color:var(--muted);
-      display:flex; align-items:center; gap:.3rem;
-      flex-shrink:0;
-    }
+    .admin-lock { font-size:.75rem; color:var(--muted); display:flex; align-items:center; gap:.3rem; flex-shrink:0; }
 
     /* Add user form */
     .add-user-form { display:flex; flex-direction:column; gap:.65rem; padding-top:.25rem; }
-    .add-user-row { display:flex; gap:.65rem; }
-    .add-user-row input { flex:1; }
+    .add-user-grid { display:grid; grid-template-columns:1fr 1fr; gap:.65rem; }
+    @media (max-width:560px) { .add-user-grid { grid-template-columns:1fr; } }
+
+    /* password eye toggle */
+    .pass-field { position:relative; }
+    .pass-field input { padding-right:2.4rem; }
+    .pass-eye {
+      position:absolute; right:.7rem; top:50%; transform:translateY(-50%);
+      background:none; border:none; cursor:pointer; color:var(--muted);
+      font-size:.85rem; transition:color var(--tr);
+    }
+    .pass-eye:hover { color:var(--text); }
   </style>
 </head>
 <body>
@@ -80,8 +84,11 @@
       <a href="settings.html"  class="nav-item"><span class="nav-icon">⚙️</span>Configuración</a>
     </nav>
     <div class="sidebar-bottom">
-      <span class="sidebar-version">v1.0</span>
-      <button class="theme-btn" id="themeBtn">🌙</button>
+      <div id="sidebarUser"></div>
+      <div class="sb-bottom-row">
+        <span class="sidebar-version">v1.0</span>
+        <button class="theme-btn" id="themeBtn">🌙</button>
+      </div>
     </div>
   </aside>
 
@@ -101,19 +108,50 @@
             <span class="section-head-icon">👥</span>
             <div>
               <div class="section-head-title">Perfiles de usuario</div>
-              <div class="section-head-sub">Agrega miembros para asignarles tareas en los proyectos.</div>
+              <div class="section-head-sub">Agrega miembros para asignarles tareas. Cada usuario necesita un nombre de usuario y contraseña para iniciar sesión.</div>
             </div>
           </div>
           <div class="section-body">
 
+            <!-- Lista -->
             <div class="user-list" id="userList"></div>
 
+            <!-- Formulario nuevo usuario -->
             <div class="add-user-form">
-              <div class="add-user-row">
-                <input type="text" id="newUserName" placeholder="Nombre del nuevo miembro" maxlength="40" />
-                <button class="btn btn-primary" id="addUserBtn">Agregar</button>
+              <div class="add-user-grid">
+                <div class="form-group">
+                  <label class="form-label">Nombre completo *</label>
+                  <input type="text" id="newName" placeholder="Ej. Carlos Pérez" maxlength="40" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Usuario *</label>
+                  <input type="text" id="newUsername" placeholder="Ej. carlos" maxlength="30"
+                    autocapitalize="none" spellcheck="false" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Contraseña *</label>
+                  <div class="pass-field">
+                    <input type="password" id="newPassword" placeholder="Mínimo 4 caracteres" maxlength="50" />
+                    <button class="pass-eye" id="eyeBtn" type="button" tabindex="-1">👁</button>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Rol</label>
+                  <select id="newRole">
+                    <option value="member">👤 Miembro</option>
+                    <option value="admin">🔐 Administrador</option>
+                  </select>
+                </div>
               </div>
-              <span class="field-error" id="userErr" style="display:none">El nombre es obligatorio.</span>
+
+              <div>
+                <button class="btn btn-primary" id="addUserBtn">Agregar usuario</button>
+              </div>
+
+              <!-- Errores -->
+              <div id="formErrors" style="display:none">
+                <span class="field-error" style="display:block" id="formErrMsg"></span>
+              </div>
             </div>
 
           </div>
@@ -147,19 +185,18 @@
 <div id="toastWrap" class="toast-wrap"></div>
 <script src="shared.js"></script>
 <script>
+checkAuth();
 seedData();
 initTheme();
 initNav();
 
-let delUserTargetId = null;
-
 const AVATAR_COLORS = ['#5b6af0','#7ee8a2','#f0a05b','#f05b6a','#a05bf0','#5bc8f0'];
-
 function avatarColor(id) {
-  let sum = 0;
-  for (let i = 0; i < id.length; i++) sum += id.charCodeAt(i);
-  return AVATAR_COLORS[sum % AVATAR_COLORS.length];
+  let s = 0; for (let i = 0; i < id.length; i++) s += id.charCodeAt(i);
+  return AVATAR_COLORS[s % AVATAR_COLORS.length];
 }
+
+let delUserTargetId = null;
 
 /* ── RENDER ──────────────────────────────────── */
 function renderUsers() {
@@ -167,23 +204,22 @@ function renderUsers() {
   const list = document.getElementById('userList');
 
   if (!users.length) {
-    list.innerHTML = `<div style="font-size:.84rem;color:var(--muted);padding:.25rem 0">No hay usuarios registrados.</div>`;
+    list.innerHTML = `<div style="font-size:.84rem;color:var(--muted)">No hay usuarios registrados.</div>`;
     return;
   }
 
   list.innerHTML = users.map(u => {
     const isAdmin = u.role === 'admin';
-    const initial = u.name.charAt(0).toUpperCase();
     const color   = avatarColor(u.id);
+    const initial = u.name.charAt(0).toUpperCase();
+    const uname   = u.username || u.name.toLowerCase().split(' ')[0];
 
     return `
     <div class="user-item">
       <div class="user-avatar" style="background:${color}">${initial}</div>
       <div class="user-info">
         <div class="user-name">${escHtml(u.name)}</div>
-        <span class="user-role-badge ${isAdmin ? 'role-admin' : 'role-member'}">
-          ${isAdmin ? '🔐 Administrador' : '👤 Miembro'}
-        </span>
+        <div class="user-username">@${escHtml(uname)} · <span class="user-role-badge ${isAdmin ? 'role-admin' : 'role-member'}">${isAdmin ? '🔐 Admin' : '👤 Miembro'}</span></div>
       </div>
       ${isAdmin
         ? `<span class="admin-lock" title="El administrador no puede eliminarse">🔒 Protegido</span>`
@@ -193,45 +229,75 @@ function renderUsers() {
   }).join('');
 }
 
-/* ── AGREGAR ─────────────────────────────────── */
-document.getElementById('addUserBtn').addEventListener('click', addUser);
-document.getElementById('newUserName').addEventListener('keydown', e => {
-  if (e.key === 'Enter') addUser();
+/* ── TOGGLE CONTRASEÑA ───────────────────────── */
+let passShown = false;
+document.getElementById('eyeBtn').addEventListener('click', () => {
+  passShown = !passShown;
+  document.getElementById('newPassword').type = passShown ? 'text' : 'password';
+  document.getElementById('eyeBtn').textContent = passShown ? '🙈' : '👁';
 });
 
-function addUser() {
-  const input = document.getElementById('newUserName');
-  const errEl = document.getElementById('userErr');
-  const name  = input.value.trim();
+/* ── AGREGAR USUARIO ─────────────────────────── */
+document.getElementById('addUserBtn').addEventListener('click', addUser);
+['newName','newUsername','newPassword'].forEach(id => {
+  document.getElementById(id).addEventListener('keydown', e => {
+    if (e.key === 'Enter') addUser();
+  });
+});
 
-  if (!name) { errEl.style.display = 'block'; input.focus(); return; }
-  errEl.style.display = 'none';
-
-  const { users } = loadAll();
-  users.push({ id: genId('u'), name, role: 'member' });
-  saveUsers(users);
-  input.value = '';
-  renderUsers();
-  showToast(`Usuario "${name}" agregado exitosamente.`, 'success');
+function showFormError(msg) {
+  const el = document.getElementById('formErrMsg');
+  el.textContent = msg;
+  document.getElementById('formErrors').style.display = 'block';
+}
+function clearFormError() {
+  document.getElementById('formErrors').style.display = 'none';
 }
 
-/* ── ELIMINAR ────────────────────────────────── */
+function addUser() {
+  const name     = document.getElementById('newName').value.trim();
+  const username = document.getElementById('newUsername').value.trim().toLowerCase();
+  const password = document.getElementById('newPassword').value;
+  const role     = document.getElementById('newRole').value;
+
+  // Validaciones
+  if (!name)     { showFormError('El nombre completo es obligatorio.'); document.getElementById('newName').focus(); return; }
+  if (!username) { showFormError('El nombre de usuario es obligatorio.'); document.getElementById('newUsername').focus(); return; }
+  if (!password) { showFormError('La contraseña es obligatoria.'); document.getElementById('newPassword').focus(); return; }
+  if (password.length < 4) { showFormError('La contraseña debe tener al menos 4 caracteres.'); document.getElementById('newPassword').focus(); return; }
+
+  // Verificar que el username no exista ya
+  const { users } = loadAll();
+  const exists = users.find(u => (u.username || '').toLowerCase() === username);
+  if (exists) { showFormError(`El usuario "@${username}" ya existe.`); document.getElementById('newUsername').focus(); return; }
+
+  clearFormError();
+
+  users.push({ id: genId('u'), name, username, password, role });
+  saveUsers(users);
+
+  // Limpiar formulario
+  document.getElementById('newName').value     = '';
+  document.getElementById('newUsername').value = '';
+  document.getElementById('newPassword').value = '';
+  document.getElementById('newRole').value     = 'member';
+
+  renderUsers();
+  showToast(`Usuario "@${username}" creado exitosamente.`, 'success');
+}
+
+/* ── ELIMINAR USUARIO ────────────────────────── */
 function promptDelUser(id) {
   const { users } = loadAll();
   const u = users.find(x => x.id === id);
-
-  // Protección: nunca permitir borrar un admin
-  if (!u || u.role === 'admin') {
-    showToast('El administrador no puede eliminarse.', 'warning');
-    return;
-  }
+  if (!u || u.role === 'admin') { showToast('El administrador no puede eliminarse.', 'warning'); return; }
 
   delUserTargetId = id;
   document.getElementById('delUserName').textContent = u.name;
   document.getElementById('delUserOverlay').classList.add('open');
 }
 
-['delUserClose', 'delUserCancel'].forEach(id => {
+['delUserClose','delUserCancel'].forEach(id => {
   document.getElementById(id).addEventListener('click', () =>
     document.getElementById('delUserOverlay').classList.remove('open')
   );
@@ -240,21 +306,10 @@ function promptDelUser(id) {
 document.getElementById('delUserConfirm').addEventListener('click', () => {
   const { users, tasks } = loadAll();
   const target = users.find(u => u.id === delUserTargetId);
-
-  // Verificación final antes de eliminar
-  if (!target || target.role === 'admin') {
-    showToast('El administrador no puede eliminarse.', 'warning');
-    document.getElementById('delUserOverlay').classList.remove('open');
-    return;
-  }
-
-  // Desasignar tareas de ese usuario
-  const updatedTasks = tasks.map(t =>
-    t.assignedTo === delUserTargetId ? { ...t, assignedTo: '' } : t
-  );
+  if (!target || target.role === 'admin') return;
 
   saveUsers(users.filter(u => u.id !== delUserTargetId));
-  saveTasks(updatedTasks);
+  saveTasks(tasks.map(t => t.assignedTo === delUserTargetId ? { ...t, assignedTo: '' } : t));
   renderUsers();
   document.getElementById('delUserOverlay').classList.remove('open');
   showToast(`Usuario "${target.name}" eliminado.`, 'error');

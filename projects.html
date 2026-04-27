@@ -68,8 +68,11 @@
       <a href="settings.html"  class="nav-item"><span class="nav-icon">⚙️</span>Configuración</a>
     </nav>
     <div class="sidebar-bottom">
-      <span class="sidebar-version">v1.0</span>
-      <button class="theme-btn" id="themeBtn">🌙</button>
+      <div id="sidebarUser"></div>
+      <div class="sb-bottom-row">
+        <span class="sidebar-version">v1.0</span>
+        <button class="theme-btn" id="themeBtn">🌙</button>
+      </div>
     </div>
   </aside>
 
@@ -180,6 +183,7 @@ let selectedColor = COLORS[0];
 let delTargetId = null;
 
 /* ── INIT ───────────────────────────────────── */
+checkAuth();
 seedData();
 initTheme();
 initNav();
