@@ -135,19 +135,29 @@
   function render() {
     const { projects, tasks } = loadAll();
 
+    // Filtrar por rol
+    const myTasks    = getVisibleTasks(tasks);
+    const myProjects = getVisibleProjects(projects, tasks);
+
+    // Ocultar botón "Nuevo Proyecto" a miembros
+    if (!isAdmin()) {
+      const btn = document.querySelector('.page-actions');
+      if (btn) btn.style.display = 'none';
+    }
+
     // Saludo con hora
     const h = new Date().getHours();
     const greet = h < 12 ? 'Buenos días' : h < 19 ? 'Buenas tardes' : 'Buenas noches';
     document.getElementById('greeting').textContent = greet + ' 👋';
 
     // Stats
-    const total    = projects.length;
-    const pending  = tasks.filter(t => t.status === 'pending').length;
-    const inProg   = tasks.filter(t => t.status === 'in_progress').length;
-    const done     = tasks.filter(t => t.status === 'done').length;
+    const total   = myProjects.length;
+    const pending = myTasks.filter(t => t.status === 'pending').length;
+    const inProg  = myTasks.filter(t => t.status === 'in_progress').length;
+    const done    = myTasks.filter(t => t.status === 'done').length;
 
     document.getElementById('statsGrid').innerHTML = `
-      <div class="stat-card"><div class="stat-icon blue">📁</div><div><div class="stat-value">${total}</div><div class="stat-label">Total proyectos</div></div></div>
+      <div class="stat-card"><div class="stat-icon blue">📁</div><div><div class="stat-value">${total}</div><div class="stat-label">${isAdmin() ? 'Total proyectos' : 'Mis proyectos'}</div></div></div>
       <div class="stat-card"><div class="stat-icon amber">🕐</div><div><div class="stat-value">${pending}</div><div class="stat-label">Tareas pendientes</div></div></div>
       <div class="stat-card"><div class="stat-icon blue">⚡</div><div><div class="stat-value">${inProg}</div><div class="stat-label">En progreso</div></div></div>
       <div class="stat-card"><div class="stat-icon green">✅</div><div><div class="stat-value">${done}</div><div class="stat-label">Completadas</div></div></div>
@@ -155,19 +165,22 @@
 
     // Actividad reciente: tareas in_progress
     const actList = document.getElementById('activityList');
-    const recent = tasks.filter(t => t.status === 'in_progress').slice(0, 6);
+    const recent = myTasks.filter(t => t.status === 'in_progress').slice(0, 6);
     if (!recent.length) {
       actList.innerHTML = '<div class="empty-state" style="padding:2rem"><div class="empty-icon">📭</div><div class="empty-sub">No hay tareas en progreso.</div></div>';
     } else {
       const statusDot = { pending:'var(--muted)', in_progress:'var(--accent)', done:'var(--accent2)' };
       actList.innerHTML = '<div class="activity-list">' + recent.map(t => {
         const proj = projects.find(p => p.id === t.projectId);
+        const assignedTo = Array.isArray(t.assignedTo) ? t.assignedTo : (t.assignedTo ? [t.assignedTo] : []);
+        const { users } = loadAll();
+        const names = assignedTo.map(id => users.find(u => u.id === id)?.name?.split(' ')[0]).filter(Boolean).join(', ');
         return `
           <div class="activity-item">
             <div class="act-dot" style="background:${statusDot[t.status]}"></div>
             <div class="act-info">
               <div class="act-name">${escHtml(t.name)}</div>
-              <div class="act-proj">${proj ? escHtml(proj.name) : 'Sin proyecto'}</div>
+              <div class="act-proj">${proj ? escHtml(proj.name) : 'Sin proyecto'}${names ? ` · 👤 ${escHtml(names)}` : ''}</div>
             </div>
             <div class="act-date">${formatDate(t.dueDate)}</div>
           </div>`;
@@ -176,10 +189,10 @@
 
     // Proyectos con barra de progreso
     const projList = document.getElementById('projMiniList');
-    if (!projects.length) {
+    if (!myProjects.length) {
       projList.innerHTML = '<div class="empty-state" style="padding:2rem"><div class="empty-icon">📂</div><div class="empty-sub">Sin proyectos aún.</div></div>';
     } else {
-      projList.innerHTML = '<div class="proj-mini-list">' + projects.map(p => {
+      projList.innerHTML = '<div class="proj-mini-list">' + myProjects.map(p => {
         const prog = projectProgress(p.id);
         return `
           <div class="proj-mini">

@@ -6,12 +6,41 @@
   <title>TaskFlow — Kanban</title>
   <link rel="stylesheet" href="styles.css" />
   <style>
-    /* Selector de proyecto */
-    .proj-selector { display:flex; align-items:center; gap:.75rem; flex-wrap:wrap; margin-bottom:1.5rem; }
+    .proj-selector { display:flex; align-items:center; gap:.75rem; flex-wrap:wrap; margin-bottom:1.25rem; }
     .proj-selector label { font-size:.85rem; color:var(--muted); font-weight:500; flex-shrink:0; }
     .proj-selector select { max-width:280px; }
 
-    /* Tablero Kanban */
+    /* ── BARRA DE FILTROS (solo admin) ── */
+    .filter-panel {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1rem 1.25rem;
+      margin-bottom: 1.25rem; display: flex; flex-direction: column; gap: .75rem;
+    }
+    .filter-panel-title {
+      font-family:'Syne',sans-serif; font-weight:700; font-size:.82rem;
+      color:var(--muted); text-transform:uppercase; letter-spacing:.05em;
+    }
+    .filter-rows { display: flex; flex-direction: column; gap: .6rem; }
+    .filter-row { display: flex; align-items: center; gap: .65rem; flex-wrap: wrap; }
+    .filter-row-label { font-size:.78rem; color:var(--muted); font-weight:500; width:80px; flex-shrink:0; }
+    .filter-chips { display: flex; gap: .4rem; flex-wrap: wrap; }
+    .fchip {
+      padding:.28rem .75rem; border-radius:99px;
+      border:1.5px solid var(--border); font-size:.75rem;
+      font-weight:500; color:var(--muted); background:var(--surface2);
+      cursor:pointer; transition:all var(--tr);
+    }
+    .fchip.active,.fchip:hover { border-color:var(--accent); color:var(--accent); background:rgba(91,106,240,.08); }
+    .fchip.active.high   { border-color:#f05b6a; color:#f05b6a; background:rgba(240,91,106,.08); }
+    .fchip.active.medium { border-color:#f0a05b; color:#f0a05b; background:rgba(240,160,91,.08); }
+    .fchip.active.low    { border-color:#7ee8a2; color:#7ee8a2; background:rgba(126,232,162,.08); }
+    .filter-row select { max-width:200px; padding:.35rem .75rem; font-size:.8rem; }
+    .filter-row input[type="date"] { max-width:155px; padding:.35rem .75rem; font-size:.8rem; }
+    .filter-reset { font-size:.78rem; color:var(--muted); cursor:pointer; margin-left:auto; padding:.28rem .65rem; border-radius:var(--radius-sm); border:1px solid var(--border); background:var(--surface2); transition:all var(--tr); }
+    .filter-reset:hover { border-color:var(--danger); color:var(--danger); }
+    .filter-count { font-size:.75rem; color:var(--muted); }
+
+    /* ── TABLERO ── */
     .kanban-board { display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; align-items:start; }
     @media (max-width:900px) { .kanban-board { grid-template-columns:1fr; } }
 
@@ -21,58 +50,67 @@
       min-height:400px; transition:border-color var(--tr), background var(--tr);
     }
     .kanban-col.drag-over { border-color:var(--accent); background:rgba(91,106,240,.05); }
-
     .col-header {
       padding:.9rem 1rem; border-bottom:1px solid var(--border);
       display:flex; align-items:center; justify-content:space-between;
       position:sticky; top:0; background:var(--surface);
       border-radius:var(--radius) var(--radius) 0 0;
     }
-    .col-title {
-      font-family:'Syne',sans-serif; font-weight:700; font-size:.88rem;
-      display:flex; align-items:center; gap:.5rem;
-    }
-    .col-count {
-      background:var(--surface2); color:var(--muted);
-      font-size:.72rem; font-weight:600; padding:.15rem .5rem;
-      border-radius:99px; border:1px solid var(--border);
-    }
+    .col-title { font-family:'Syne',sans-serif; font-weight:700; font-size:.88rem; display:flex; align-items:center; gap:.5rem; }
+    .col-count { background:var(--surface2); color:var(--muted); font-size:.72rem; font-weight:600; padding:.15rem .5rem; border-radius:99px; border:1px solid var(--border); }
     .col-body { padding:.75rem; display:flex; flex-direction:column; gap:.6rem; flex:1; }
 
-    /* Tarjeta de tarea */
+    /* ── TARJETA ── */
     .task-card {
       background:var(--surface2); border:1px solid var(--border);
       border-radius:var(--radius-sm); padding:.9rem 1rem;
-      cursor:grab; transition:all var(--tr);
-      animation:cardIn .25s ease both;
+      cursor:grab; transition:all var(--tr); animation:cardIn .25s ease both;
     }
     .task-card:active { cursor:grabbing; }
     .task-card:hover { border-color:var(--accent); transform:translateY(-1px); box-shadow:0 4px 16px rgba(0,0,0,.3); }
     .task-card.dragging { opacity:.4; }
     @keyframes cardIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+    .task-card[data-priority="high"]   { border-left:3px solid #f05b6a; }
+    .task-card[data-priority="medium"] { border-left:3px solid #f0a05b; }
+    .task-card[data-priority="low"]    { border-left:3px solid #7ee8a2; }
 
     .task-card-header { display:flex; align-items:flex-start; justify-content:space-between; gap:.4rem; margin-bottom:.5rem; }
     .task-name { font-size:.88rem; font-weight:500; line-height:1.35; flex:1; }
     .task-menu-btn { font-size:.95rem; color:var(--muted); width:22px; height:22px; display:flex; align-items:center; justify-content:center; border-radius:4px; transition:all var(--tr); flex-shrink:0; }
     .task-menu-btn:hover { background:var(--border); color:var(--text); }
-
-    .task-desc { font-size:.78rem; color:var(--muted); margin-bottom:.6rem; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+    .task-desc { font-size:.78rem; color:var(--muted); margin-bottom:.55rem; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
     .task-meta { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:.35rem; }
     .task-date { font-size:.73rem; color:var(--muted); }
-    .task-date.overdue { color:var(--danger); }
-    .task-assignee {
-      font-size:.72rem; font-weight:500;
-      background:var(--surface); border:1px solid var(--border);
-      border-radius:99px; padding:.15rem .55rem; color:var(--muted);
+    .task-date.overdue { color:var(--danger); font-weight:600; }
+
+    /* Avatares de múltiples usuarios */
+    .task-avatars { display:flex; align-items:center; }
+    .t-avatar {
+      width:22px; height:22px; border-radius:50%; border:1.5px solid var(--surface2);
+      display:flex; align-items:center; justify-content:center;
+      font-size:.65rem; font-weight:700; color:#fff; flex-shrink:0;
+      margin-left:-5px; transition:transform var(--tr);
     }
+    .t-avatar:first-child { margin-left:0; }
+    .task-avatars:hover .t-avatar { margin-left:1px; }
+    .t-avatar-more { background:var(--surface); color:var(--muted); border-color:var(--border); font-size:.6rem; }
 
-    /* Sin proyecto seleccionado */
+    /* Multi-select de usuarios en modal */
+    .user-checkboxes { display:flex; flex-direction:column; gap:.4rem; max-height:160px; overflow-y:auto; }
+    .user-checkbox-item {
+      display:flex; align-items:center; gap:.65rem;
+      padding:.5rem .75rem; background:var(--surface2);
+      border:1.5px solid var(--border); border-radius:var(--radius-sm);
+      cursor:pointer; transition:all var(--tr);
+    }
+    .user-checkbox-item:hover { border-color:var(--accent); }
+    .user-checkbox-item.selected { border-color:var(--accent); background:rgba(91,106,240,.08); }
+    .user-checkbox-item input[type="checkbox"] { width:auto; accent-color:var(--accent); cursor:pointer; }
+    .uc-avatar { width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:.72rem; font-weight:700; color:#fff; flex-shrink:0; }
+    .uc-name { font-size:.84rem; flex:1; }
+    .uc-role { font-size:.7rem; color:var(--muted); }
+
     .no-project { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:4rem 2rem; text-align:center; gap:.75rem; color:var(--muted); }
-
-    /* Indicador de prioridad en borde izquierdo */
-    .task-card[data-priority="high"]   { border-left:3px solid #f05b6a; }
-    .task-card[data-priority="medium"] { border-left:3px solid #f0a05b; }
-    .task-card[data-priority="low"]    { border-left:3px solid #7ee8a2; }
   </style>
 </head>
 <body>
@@ -103,7 +141,7 @@
     <header class="page-header">
       <div>
         <h1 class="page-title">Tablero Kanban</h1>
-        <p class="page-sub" id="boardSub">Arrastra las tarjetas para cambiar el estado de las tareas.</p>
+        <p class="page-sub" id="boardSub">Selecciona un proyecto para comenzar.</p>
       </div>
       <div class="page-actions">
         <button class="btn btn-primary" id="newTaskBtn">＋ Nueva Tarea</button>
@@ -115,6 +153,51 @@
       <div class="proj-selector">
         <label>Proyecto:</label>
         <select id="projSelect"></select>
+      </div>
+
+      <!-- Panel de filtros (solo admin) -->
+      <div class="filter-panel" id="filterPanel" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div class="filter-panel-title">🔍 Filtros</div>
+          <div style="display:flex;align-items:center;gap:.75rem">
+            <span class="filter-count" id="filterCount"></span>
+            <button class="filter-reset" id="resetFilters">Limpiar filtros</button>
+          </div>
+        </div>
+        <div class="filter-rows">
+          <!-- Estado -->
+          <div class="filter-row">
+            <div class="filter-row-label">Estado</div>
+            <div class="filter-chips" id="statusChips">
+              <button class="fchip active" data-status="all">Todos</button>
+              <button class="fchip" data-status="pending">Pendiente</button>
+              <button class="fchip" data-status="in_progress">En Progreso</button>
+              <button class="fchip" data-status="done">Terminado</button>
+            </div>
+          </div>
+          <!-- Prioridad -->
+          <div class="filter-row">
+            <div class="filter-row-label">Prioridad</div>
+            <div class="filter-chips" id="prioChips">
+              <button class="fchip active" data-prio="all">Todas</button>
+              <button class="fchip high" data-prio="high">🔴 Alta</button>
+              <button class="fchip medium" data-prio="medium">🟡 Media</button>
+              <button class="fchip low" data-prio="low">🟢 Baja</button>
+            </div>
+          </div>
+          <!-- Usuario asignado -->
+          <div class="filter-row">
+            <div class="filter-row-label">Usuario</div>
+            <select id="filterUser" style="max-width:200px;padding:.35rem .75rem;font-size:.8rem"></select>
+          </div>
+          <!-- Rango de fechas -->
+          <div class="filter-row">
+            <div class="filter-row-label">Fecha límite</div>
+            <input type="date" id="filterDateFrom" title="Desde" />
+            <span style="font-size:.78rem;color:var(--muted)">—</span>
+            <input type="date" id="filterDateTo" title="Hasta" />
+          </div>
+        </div>
       </div>
 
       <!-- Tablero -->
@@ -159,15 +242,14 @@
           </select>
         </div>
       </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">Asignado a</label>
-          <select id="taskAssignee"></select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Fecha límite</label>
-          <input type="date" id="taskDate" />
-        </div>
+      <div class="form-group">
+        <label class="form-label">Fecha límite</label>
+        <input type="date" id="taskDate" />
+      </div>
+      <!-- H40: Multi-select usuarios -->
+      <div class="form-group">
+        <label class="form-label">Asignar a <span style="color:var(--muted);font-weight:400;text-transform:none;font-size:.75rem">(puedes seleccionar varios)</span></label>
+        <div class="user-checkboxes" id="userCheckboxes"></div>
       </div>
     </div>
     <div class="modal-footer">
@@ -202,15 +284,21 @@
 <script src="shared.js"></script>
 <script>
 /* ── STATE ──────────────────────────────────── */
-let currentProjId  = '';
-let dragTaskId     = '';
+let currentProjId   = '';
+let dragTaskId      = '';
 let delTaskTargetId = '';
+
+// Filtros (H41)
+const filters = { status:'all', priority:'all', userId:'', dateFrom:'', dateTo:'' };
 
 const COLS = [
   { status:'pending',     label:'Pendiente',  icon:'🕐' },
   { status:'in_progress', label:'En Progreso', icon:'⚡' },
   { status:'done',        label:'Terminado',   icon:'✅' },
 ];
+
+const AVC = ['#5b6af0','#7ee8a2','#f0a05b','#f05b6a','#a05bf0','#5bc8f0'];
+function avColor(id) { let s=0; for(let i=0;i<id.length;i++) s+=id.charCodeAt(i); return AVC[s%AVC.length]; }
 
 /* ── INIT ───────────────────────────────────── */
 checkAuth();
@@ -220,18 +308,93 @@ initNav();
 
 const qp = new URLSearchParams(window.location.search).get('p');
 buildProjSelect(qp);
+initFilters();
 renderBoard();
 
 /* ── SELECTOR DE PROYECTO ───────────────────── */
 function buildProjSelect(preselect) {
-  const { projects } = loadAll();
+  const { projects, tasks } = loadAll();
+  const myProjects = getVisibleProjects(projects, tasks);
   const sel = document.getElementById('projSelect');
   sel.innerHTML = '<option value="">— Selecciona un proyecto —</option>' +
-    projects.map(p =>
+    myProjects.map(p =>
       `<option value="${p.id}"${p.id === preselect ? ' selected' : ''}>${escHtml(p.name)}</option>`
     ).join('');
   currentProjId = preselect || '';
   sel.addEventListener('change', () => { currentProjId = sel.value; renderBoard(); });
+}
+
+/* ── FILTROS (H41) ──────────────────────────── */
+function initFilters() {
+  if (!isAdmin()) return;
+
+  // Mostrar panel
+  document.getElementById('filterPanel').style.display = 'block';
+
+  // Poblar selector de usuarios
+  const { users } = loadAll();
+  const fuSel = document.getElementById('filterUser');
+  fuSel.innerHTML = '<option value="">Todos los usuarios</option>' +
+    users.map(u => `<option value="${u.id}">${escHtml(u.name)}</option>`).join('');
+
+  // Chips de estado
+  document.querySelectorAll('#statusChips .fchip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#statusChips .fchip').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      filters.status = btn.dataset.status;
+      renderBoard();
+    });
+  });
+
+  // Chips de prioridad
+  document.querySelectorAll('#prioChips .fchip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#prioChips .fchip').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      filters.priority = btn.dataset.prio;
+      renderBoard();
+    });
+  });
+
+  // Usuario
+  fuSel.addEventListener('change', () => { filters.userId = fuSel.value; renderBoard(); });
+
+  // Fechas
+  document.getElementById('filterDateFrom').addEventListener('change', e => { filters.dateFrom = e.target.value; renderBoard(); });
+  document.getElementById('filterDateTo').addEventListener('change',   e => { filters.dateTo   = e.target.value; renderBoard(); });
+
+  // Reset
+  document.getElementById('resetFilters').addEventListener('click', () => {
+    filters.status='all'; filters.priority='all'; filters.userId=''; filters.dateFrom=''; filters.dateTo='';
+    document.querySelectorAll('#statusChips .fchip').forEach((b,i) => b.classList.toggle('active', i===0));
+    document.querySelectorAll('#prioChips .fchip').forEach((b,i)  => b.classList.toggle('active', i===0));
+    document.getElementById('filterUser').value     = '';
+    document.getElementById('filterDateFrom').value = '';
+    document.getElementById('filterDateTo').value   = '';
+    renderBoard();
+  });
+}
+
+function applyFilters(tasks) {
+  return tasks.filter(t => {
+    if (filters.status   !== 'all' && t.status   !== filters.status)   return false;
+    if (filters.priority !== 'all' && t.priority !== filters.priority) return false;
+    if (filters.userId) {
+      const at = Array.isArray(t.assignedTo) ? t.assignedTo : [];
+      if (!at.includes(filters.userId)) return false;
+    }
+    if (filters.dateFrom && t.dueDate && t.dueDate < filters.dateFrom) return false;
+    if (filters.dateTo   && t.dueDate && t.dueDate > filters.dateTo)   return false;
+    return true;
+  });
+}
+
+function updateFilterCount(total, filtered) {
+  const el = document.getElementById('filterCount');
+  if (!el) return;
+  const active = filters.status!=='all'||filters.priority!=='all'||filters.userId||filters.dateFrom||filters.dateTo;
+  el.textContent = active ? `${filtered} de ${total} tarea${total!==1?'s':''}` : '';
 }
 
 /* ── RENDER TABLERO ─────────────────────────── */
@@ -250,12 +413,34 @@ function renderBoard() {
 
   const { tasks, users, projects } = loadAll();
   const proj = projects.find(p => p.id === currentProjId);
-  const projTasks = tasks.filter(t => t.projectId === currentProjId);
+
+  // Tareas del proyecto filtradas por rol
+  let projTasks = tasks
+    .filter(t => t.projectId === currentProjId)
+    .filter(t => {
+      if (isAdmin()) return true;
+      const at = Array.isArray(t.assignedTo) ? t.assignedTo : [];
+      return at.includes(getMyId());
+    });
 
   document.getElementById('boardSub').textContent = proj ? `Proyecto: ${proj.name}` : '';
+  document.getElementById('newTaskBtn').style.display = isAdmin() ? '' : 'none';
+
+  // Aplicar filtros admin (H41)
+  const filtered = isAdmin() ? applyFilters(projTasks) : projTasks;
+  updateFilterCount(projTasks.length, filtered.length);
+
+  // H17: Ordenar por fecha límite ascendente dentro de cada columna
+  const sortByDate = arr => [...arr].sort((a, b) => {
+    if (!a.dueDate && !b.dueDate) return 0;
+    if (!a.dueDate) return 1;
+    if (!b.dueDate) return -1;
+    return a.dueDate.localeCompare(b.dueDate);
+  });
 
   wrap.innerHTML = `<div class="kanban-board">${COLS.map(col => {
-    const colTasks = projTasks.filter(t => t.status === col.status);
+    // Cuando hay filtro de estado activo, mostrar solo esa columna si coincide
+    const colTasks = sortByDate(filtered.filter(t => t.status === col.status));
     return `
     <div class="kanban-col" data-status="${col.status}"
          ondragover="onDragOver(event,this)"
@@ -272,11 +457,25 @@ function renderBoard() {
   }).join('')}</div>`;
 }
 
+/* ── TARJETA ─────────────────────────────────── */
 function taskCard(t, users) {
-  const user    = users.find(u => u.id === t.assignedTo);
+  const assignedTo = Array.isArray(t.assignedTo) ? t.assignedTo : (t.assignedTo ? [t.assignedTo] : []);
+  const assignedUsers = assignedTo.map(id => users.find(u => u.id === id)).filter(Boolean);
   const today   = new Date().toISOString().slice(0, 10);
   const overdue = t.dueDate && t.dueDate < today && t.status !== 'done';
-  const priorityLabel = { high:'Alta', medium:'Media', low:'Baja' };
+  const prioLabel = { high:'Alta', medium:'Media', low:'Baja' };
+
+  // Avatares: mostrar hasta 3, luego "+N"
+  const maxAv = 3;
+  const shown = assignedUsers.slice(0, maxAv);
+  const extra = assignedUsers.length - maxAv;
+  const avatarsHtml = assignedUsers.length
+    ? `<div class="task-avatars" title="${assignedUsers.map(u=>u.name).join(', ')}">
+        ${shown.map(u => `<div class="t-avatar" style="background:${avColor(u.id)}">${u.name.charAt(0)}</div>`).join('')}
+        ${extra > 0 ? `<div class="t-avatar t-avatar-more">+${extra}</div>` : ''}
+      </div>`
+    : '';
+
   return `
   <div class="task-card" draggable="true" data-task-id="${t.id}" data-priority="${t.priority}"
        ondragstart="onDragStart(event,'${t.id}')">
@@ -292,10 +491,10 @@ function taskCard(t, users) {
     </div>
     ${t.desc ? `<div class="task-desc">${escHtml(t.desc)}</div>` : ''}
     <div class="task-meta">
-      <span class="badge badge-${t.priority}">${priorityLabel[t.priority]}</span>
-      <div style="display:flex;gap:.4rem;align-items:center">
-        ${user     ? `<span class="task-assignee">👤 ${escHtml(user.name.split(' ')[0])}</span>` : ''}
-        ${t.dueDate ? `<span class="task-date${overdue ? ' overdue' : ''}">📅 ${formatDate(t.dueDate)}</span>` : ''}
+      <span class="badge badge-${t.priority}">${prioLabel[t.priority]}</span>
+      <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
+        ${avatarsHtml}
+        ${t.dueDate ? `<span class="task-date${overdue ? ' overdue' : ''}">📅 ${formatDate(t.dueDate)}${overdue ? ' ⚠️' : ''}</span>` : ''}
       </div>
     </div>
   </div>`;
@@ -331,6 +530,7 @@ function onDrop(e, newStatus) {
 function openTaskModal(editId, defaultStatus) {
   const { tasks, users } = loadAll();
   const t = editId ? tasks.find(x => x.id === editId) : null;
+  const tAssigned = t ? (Array.isArray(t.assignedTo) ? t.assignedTo : (t.assignedTo ? [t.assignedTo] : [])) : [];
 
   document.getElementById('taskModalTitle').textContent = t ? 'Editar Tarea' : 'Nueva Tarea';
   document.getElementById('taskEditId').value   = t ? t.id : '';
@@ -341,11 +541,21 @@ function openTaskModal(editId, defaultStatus) {
   document.getElementById('taskDate').value     = t ? (t.dueDate || '') : '';
   document.getElementById('taskNameErr').style.display = 'none';
 
-  const sel = document.getElementById('taskAssignee');
-  sel.innerHTML = '<option value="">Sin asignar</option>' +
-    users.map(u =>
-      `<option value="${u.id}"${t && t.assignedTo === u.id ? ' selected' : ''}>${escHtml(u.name)}</option>`
-    ).join('');
+  // H40: Renderizar checkboxes de usuarios
+  const box = document.getElementById('userCheckboxes');
+  box.innerHTML = users.map(u => {
+    const checked = tAssigned.includes(u.id);
+    const color   = avColor(u.id);
+    const initial = u.name.charAt(0).toUpperCase();
+    return `
+    <label class="user-checkbox-item${checked ? ' selected' : ''}">
+      <input type="checkbox" value="${u.id}" ${checked ? 'checked' : ''}
+             onchange="this.closest('.user-checkbox-item').classList.toggle('selected',this.checked)" />
+      <div class="uc-avatar" style="background:${color}">${initial}</div>
+      <div class="uc-name">${escHtml(u.name)}</div>
+      <div class="uc-role">${u.role === 'admin' ? '🔐' : '👤'}</div>
+    </label>`;
+  }).join('');
 
   document.getElementById('taskOverlay').classList.add('open');
   setTimeout(() => document.getElementById('taskName').focus(), 80);
@@ -367,13 +577,16 @@ document.getElementById('taskOverlay').addEventListener('click', e => {
 
 /* ── GUARDAR TAREA ──────────────────────────── */
 document.getElementById('taskSave').addEventListener('click', () => {
-  const name       = document.getElementById('taskName').value.trim();
-  const desc       = document.getElementById('taskDesc').value.trim();
-  const priority   = document.getElementById('taskPriority').value;
-  const status     = document.getElementById('taskStatus').value;
-  const assignedTo = document.getElementById('taskAssignee').value;
-  const dueDate    = document.getElementById('taskDate').value;
-  const editId     = document.getElementById('taskEditId').value;
+  const name     = document.getElementById('taskName').value.trim();
+  const desc     = document.getElementById('taskDesc').value.trim();
+  const priority = document.getElementById('taskPriority').value;
+  const status   = document.getElementById('taskStatus').value;
+  const dueDate  = document.getElementById('taskDate').value;
+  const editId   = document.getElementById('taskEditId').value;
+
+  // H40: Recoger todos los usuarios seleccionados
+  const assignedTo = [...document.querySelectorAll('#userCheckboxes input[type="checkbox"]:checked')]
+    .map(cb => cb.value);
 
   if (!name) {
     document.getElementById('taskNameErr').style.display = 'block';

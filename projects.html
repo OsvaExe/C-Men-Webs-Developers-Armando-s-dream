@@ -6,6 +6,26 @@
   <title>TaskFlow — Proyectos</title>
   <link rel="stylesheet" href="styles.css" />
   <style>
+    /* Checkboxes de usuarios en modal */
+    .proj-user-item {
+      display:flex; align-items:center; gap:.65rem;
+      padding:.5rem .75rem; background:var(--surface2);
+      border:1.5px solid var(--border); border-radius:var(--radius-sm);
+      cursor:pointer; transition:all var(--tr);
+    }
+    .proj-user-item:hover { border-color:var(--accent); }
+    .proj-user-item.selected { border-color:var(--accent); background:rgba(91,106,240,.08); }
+    .proj-user-item input[type="checkbox"] { width:auto; accent-color:var(--accent); cursor:pointer; }
+    .pu-avatar { width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:.72rem; font-weight:700; color:#fff; flex-shrink:0; }
+    .pu-name { font-size:.84rem; flex:1; }
+    .pu-role { font-size:.7rem; color:var(--muted); }
+
+    /* Avatar chips en tarjeta de proyecto */
+    .proj-avatars { display:flex; align-items:center; margin-top:.1rem; }
+    .p-avatar { width:20px; height:20px; border-radius:50%; border:1.5px solid var(--surface); display:flex; align-items:center; justify-content:center; font-size:.6rem; font-weight:700; color:#fff; margin-left:-4px; flex-shrink:0; }
+    .p-avatar:first-child { margin-left:0; }
+    .p-avatar-more { background:var(--surface2); color:var(--muted); border-color:var(--border); font-size:.58rem; }
+
     /* Grid de proyectos */
     .projects-grid {
       display: grid;
@@ -145,6 +165,10 @@
         <label class="form-label">Color</label>
         <div class="swatch-row" id="colorRow"></div>
       </div>
+      <div class="form-group">
+        <label class="form-label">Miembros del proyecto <span style="color:var(--muted);font-weight:400;text-transform:none;font-size:.75rem">(pueden ver este proyecto)</span></label>
+        <div id="projUserList" style="display:flex;flex-direction:column;gap:.4rem;max-height:160px;overflow-y:auto"></div>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" id="cancelBtn">Cancelar</button>
@@ -187,25 +211,37 @@ checkAuth();
 seedData();
 initTheme();
 initNav();
+
+// Ocultar botón "Nuevo Proyecto" y controles de edición/eliminación a miembros
+if (!isAdmin()) {
+  document.getElementById('newProjBtn').style.display = 'none';
+}
+
 render();
 
 /* ── RENDER ─────────────────────────────────── */
 function render() {
   const { projects, tasks } = loadAll();
 
+  // Filtrar proyectos según rol
+  const myProjects = getVisibleProjects(projects, tasks);
+
   // Subtítulo
-  document.getElementById('projCount').textContent = `${projects.length} proyecto${projects.length !== 1 ? 's' : ''} en total`;
+  document.getElementById('projCount').textContent =
+    isAdmin()
+      ? `${myProjects.length} proyecto${myProjects.length !== 1 ? 's' : ''} en total`
+      : `${myProjects.length} proyecto${myProjects.length !== 1 ? 's' : ''} asignados a ti`;
 
   // Stats
   document.getElementById('statsGrid').innerHTML = `
-    <div class="stat-card"><div class="stat-icon blue">📁</div><div><div class="stat-value">${projects.length}</div><div class="stat-label">Total</div></div></div>
-    <div class="stat-card"><div class="stat-icon green">✅</div><div><div class="stat-value">${projects.filter(p=>p.status==='active').length}</div><div class="stat-label">Activos</div></div></div>
-    <div class="stat-card"><div class="stat-icon amber">⏸</div><div><div class="stat-value">${projects.filter(p=>p.status==='paused').length}</div><div class="stat-label">Pausados</div></div></div>
-    <div class="stat-card"><div class="stat-icon red">○</div><div><div class="stat-value">${projects.filter(p=>p.status==='inactive').length}</div><div class="stat-label">Inactivos</div></div></div>
+    <div class="stat-card"><div class="stat-icon blue">📁</div><div><div class="stat-value">${myProjects.length}</div><div class="stat-label">${isAdmin() ? 'Total' : 'Mis proyectos'}</div></div></div>
+    <div class="stat-card"><div class="stat-icon green">✅</div><div><div class="stat-value">${myProjects.filter(p=>p.status==='active').length}</div><div class="stat-label">Activos</div></div></div>
+    <div class="stat-card"><div class="stat-icon amber">⏸</div><div><div class="stat-value">${myProjects.filter(p=>p.status==='paused').length}</div><div class="stat-label">Pausados</div></div></div>
+    <div class="stat-card"><div class="stat-icon red">○</div><div><div class="stat-value">${myProjects.filter(p=>p.status==='inactive').length}</div><div class="stat-label">Inactivos</div></div></div>
   `;
 
   // Lista filtrada
-  const list = projects.filter(p => {
+  const list = myProjects.filter(p => {
     const mf = filter === 'all' || p.status === filter;
     const ms = p.name.toLowerCase().includes(search) || (p.desc||'').toLowerCase().includes(search);
     return mf && ms;
@@ -215,8 +251,8 @@ function render() {
   if (!list.length) {
     grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
       <div class="empty-icon">📂</div>
-      <div class="empty-title">${projects.length ? 'Sin resultados' : 'Aún no hay proyectos'}</div>
-      <p class="empty-sub">${projects.length ? 'Prueba otro filtro o búsqueda.' : 'Crea tu primer proyecto con el botón de arriba.'}</p>
+      <div class="empty-title">${myProjects.length ? 'Sin resultados' : (isAdmin() ? 'Aún no hay proyectos' : 'Sin proyectos asignados')}</div>
+      <p class="empty-sub">${myProjects.length ? 'Prueba otro filtro o búsqueda.' : (isAdmin() ? 'Crea tu primer proyecto con el botón de arriba.' : 'Cuando te asignen tareas, sus proyectos aparecerán aquí.')}</p>
     </div>`;
     return;
   }
@@ -229,6 +265,25 @@ function render() {
 
   grid.innerHTML = list.map(p => {
     const prog = projectProgress(p.id);
+    const assigned = Array.isArray(p.assignedUsers) ? p.assignedUsers : [];
+    const { users } = loadAll();
+    const maxAv = 4;
+    const shownUsers = assigned.slice(0, maxAv).map(id => users.find(u => u.id === id)).filter(Boolean);
+    const extra = assigned.length - maxAv;
+    const avatarsHtml = shownUsers.length
+      ? `<div class="proj-avatars" title="${shownUsers.map(u=>u.name).join(', ')}">
+          ${shownUsers.map(u => `<div class="p-avatar" style="background:${avColor(u.id)}">${u.name.charAt(0)}</div>`).join('')}
+          ${extra > 0 ? `<div class="p-avatar p-avatar-more">+${extra}</div>` : ''}
+        </div>`
+      : '';
+
+    // Menú según rol
+    const menuItems = isAdmin()
+      ? `<button class="dd-item" onclick="openModal('${p.id}')">✏️ Editar</button>
+         <a href="kanban.html?p=${p.id}" class="dd-item">📋 Ver Kanban</a>
+         <button class="dd-item danger" onclick="promptDelete('${p.id}')">🗑️ Eliminar</button>`
+      : `<a href="kanban.html?p=${p.id}" class="dd-item">📋 Ver Kanban</a>`;
+
     return `
     <div class="project-card" style="--card-color:${p.color}">
       <div class="card-header">
@@ -236,9 +291,7 @@ function render() {
         <div class="dd-wrap">
           <button class="card-menu-btn" onclick="toggleMenu('${p.id}')">⋯</button>
           <div class="dd-menu" id="menu-${p.id}">
-            <button class="dd-item" onclick="openModal('${p.id}')">✏️ Editar</button>
-            <a href="kanban.html?p=${p.id}" class="dd-item">📋 Ver Kanban</a>
-            <button class="dd-item danger" onclick="promptDelete('${p.id}')">🗑️ Eliminar</button>
+            ${menuItems}
           </div>
         </div>
       </div>
@@ -247,6 +300,7 @@ function render() {
         ${statusBadge[p.status] || ''}
         ${p.dueDate ? `<span class="card-date">📅 ${formatDate(p.dueDate)}</span>` : ''}
       </div>
+      ${avatarsHtml}
       <div class="card-footer">
         <div class="prog-wrap">
           <div class="prog-meta"><span>Progreso</span><span>${prog.pct}%</span></div>
@@ -269,11 +323,16 @@ function closeMenus() { document.querySelectorAll('.dd-menu.open').forEach(el =>
 document.addEventListener('click', e => { if (!e.target.classList.contains('card-menu-btn')) closeMenus(); });
 
 /* ── MODAL ──────────────────────────────────── */
+const AVC = ['#5b6af0','#7ee8a2','#f0a05b','#f05b6a','#a05bf0','#5bc8f0'];
+function avColor(id) { let s=0; for(let i=0;i<id.length;i++) s+=id.charCodeAt(i); return AVC[s%AVC.length]; }
+
 function openModal(editId) {
-  const { projects } = loadAll();
+  const { projects, users } = loadAll();
   const p = editId ? projects.find(x => x.id === editId) : null;
+  const pAssigned = p ? (Array.isArray(p.assignedUsers) ? p.assignedUsers : []) : [];
+
   document.getElementById('modalTitle').textContent = p ? 'Editar Proyecto' : 'Nuevo Proyecto';
-  document.getElementById('editId').value  = p ? p.id : '';
+  document.getElementById('editId').value    = p ? p.id : '';
   document.getElementById('projName').value  = p ? p.name : '';
   document.getElementById('projDesc').value  = p ? (p.desc || '') : '';
   document.getElementById('projStatus').value = p ? p.status : 'active';
@@ -281,6 +340,23 @@ function openModal(editId) {
   selectedColor = p ? (p.color || COLORS[0]) : COLORS[0];
   document.getElementById('nameErr').style.display = 'none';
   renderSwatches();
+
+  // Renderizar checkboxes de usuarios
+  document.getElementById('projUserList').innerHTML = users.map(u => {
+    const checked  = pAssigned.includes(u.id);
+    const color    = avColor(u.id);
+    const initial  = u.name.charAt(0).toUpperCase();
+    const roleIcon = u.role === 'admin' ? '🔐' : '👤';
+    return `
+    <label class="proj-user-item${checked ? ' selected' : ''}">
+      <input type="checkbox" value="${u.id}" ${checked ? 'checked' : ''}
+             onchange="this.closest('.proj-user-item').classList.toggle('selected',this.checked)" />
+      <div class="pu-avatar" style="background:${color}">${initial}</div>
+      <div class="pu-name">${escHtml(u.name)}</div>
+      <div class="pu-role">${roleIcon} ${u.role === 'admin' ? 'Admin' : 'Miembro'}</div>
+    </label>`;
+  }).join('');
+
   document.getElementById('projOverlay').classList.add('open');
   setTimeout(() => document.getElementById('projName').focus(), 80);
 }
@@ -310,6 +386,10 @@ document.getElementById('saveBtn').addEventListener('click', () => {
   const dueDate = document.getElementById('projDate').value;
   const editId  = document.getElementById('editId').value;
 
+  // Recoger usuarios seleccionados
+  const assignedUsers = [...document.querySelectorAll('#projUserList input[type="checkbox"]:checked')]
+    .map(cb => cb.value);
+
   if (!name) { document.getElementById('nameErr').style.display = 'block'; document.getElementById('projName').focus(); return; }
   document.getElementById('nameErr').style.display = 'none';
 
@@ -317,10 +397,10 @@ document.getElementById('saveBtn').addEventListener('click', () => {
 
   if (editId) {
     const idx = projects.findIndex(p => p.id === editId);
-    if (idx !== -1) projects[idx] = { ...projects[idx], name, desc, status, dueDate, color: selectedColor };
+    if (idx !== -1) projects[idx] = { ...projects[idx], name, desc, status, dueDate, color: selectedColor, assignedUsers };
     showToast('Proyecto actualizado exitosamente.', 'success');
   } else {
-    projects.unshift({ id: genId('p'), name, desc, status, dueDate, color: selectedColor, createdAt: new Date().toISOString() });
+    projects.unshift({ id: genId('p'), name, desc, status, dueDate, color: selectedColor, assignedUsers, createdAt: new Date().toISOString() });
     showToast('Proyecto creado exitosamente.', 'success');
   }
 

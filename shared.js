@@ -101,6 +101,42 @@ function showToast(msg, type = 'info') {
   setTimeout(() => t.remove(), 3100);
 }
 
+// ── HELPERS DE ROL ────────────────────────────
+function isAdmin() {
+  const s = getSession();
+  return s && s.role === 'admin';
+}
+function getMyId() {
+  const s = getSession();
+  return s ? s.id : null;
+}
+// Devuelve solo los proyectos donde el miembro tiene tareas asignadas
+// O está asignado directamente al proyecto.
+// Si es admin, devuelve todos.
+function getVisibleProjects(projects, tasks) {
+  if (isAdmin()) return projects;
+  const myId = getMyId();
+  return projects.filter(p => {
+    // 1. Asignado directamente al proyecto
+    if (Array.isArray(p.assignedUsers) && p.assignedUsers.includes(myId)) return true;
+    // 2. Tiene al menos una tarea asignada en el proyecto
+    return tasks.some(t => {
+      if (t.projectId !== p.id) return false;
+      const at = Array.isArray(t.assignedTo) ? t.assignedTo : (t.assignedTo ? [t.assignedTo] : []);
+      return at.includes(myId);
+    });
+  });
+}
+// Devuelve solo las tareas visibles según rol.
+function getVisibleTasks(tasks) {
+  if (isAdmin()) return tasks;
+  const myId = getMyId();
+  return tasks.filter(t => {
+    const at = Array.isArray(t.assignedTo) ? t.assignedTo : (t.assignedTo ? [t.assignedTo] : []);
+    return at.includes(myId);
+  });
+}
+
 // ── NAV ───────────────────────────────────────
 function initNav() {
   // Marca el nav-item activo según el archivo actual
@@ -113,20 +149,27 @@ function initNav() {
   const btn = document.getElementById('themeBtn');
   if (btn) btn.addEventListener('click', toggleTheme);
 
+  // Ocultar Configuración a los miembros
+  if (!isAdmin()) {
+    document.querySelectorAll('.nav-item[href="settings.html"]').forEach(el => {
+      el.style.display = 'none';
+    });
+  }
+
   // Usuario actual en el sidebar
   const userSlot = document.getElementById('sidebarUser');
   if (userSlot) {
     const me = getSession();
     if (me) {
-      const isAdmin = me.role === 'admin';
+      const admin   = me.role === 'admin';
       const initial = me.name.charAt(0).toUpperCase();
       userSlot.innerHTML = `
         <div class="sb-user-card">
           <div class="sb-avatar">${initial}</div>
           <div class="sb-user-info">
             <div class="sb-user-name">${escHtml(me.name)}</div>
-            <div class="sb-user-role ${isAdmin ? 'sb-admin' : 'sb-member'}">
-              ${isAdmin ? '🔐 Admin' : '👤 Miembro'}
+            <div class="sb-user-role ${admin ? 'sb-admin' : 'sb-member'}">
+              ${admin ? '🔐 Admin' : '👤 Miembro'}
             </div>
           </div>
           <button class="sb-logout" onclick="logout()" title="Cerrar sesión">↩</button>
@@ -158,16 +201,53 @@ function ensureAdmin() {
   }
 }
 
+// ── MIGRACIÓN DE USUARIOS ─────────────────────
+// Si existen usuarios sin username o password (versión anterior),
+// les asigna credenciales por defecto automáticamente.
+function migrateUsers() {
+  const { users } = loadAll();
+  let changed = false;
+  const updated = users.map(u => {
+    if (!u.username || !u.password) {
+      changed = true;
+      return {
+        ...u,
+        username: u.username || u.name.toLowerCase().split(' ')[0].normalize('NFD').replace(/[\u0300-\u036f]/g, ''),
+        password: u.password || '1234',
+      };
+    }
+    return u;
+  });
+  if (changed) saveUsers(updated);
+}
+
+// ── MIGRACIÓN DE TAREAS (assignedTo → array) ──
+// Convierte assignedTo de string a array si es necesario.
+function migrateTasks() {
+  const { tasks } = loadAll();
+  let changed = false;
+  const updated = tasks.map(t => {
+    if (!Array.isArray(t.assignedTo)) {
+      changed = true;
+      return { ...t, assignedTo: t.assignedTo ? [t.assignedTo] : [] };
+    }
+    return t;
+  });
+  if (changed) saveTasks(updated);
+}
+
 // ── DATOS DE EJEMPLO ──────────────────────────
 function seedData() {
+  ensureAdmin();
+  migrateUsers();
+  migrateTasks(); // convierte assignedTo a array
   const data = loadAll();
-  ensureAdmin(); // siempre verificar que exista un admin
-  if (data.projects.length) return; // ya hay datos
+  if (data.projects.length) return;
 
   const projects = [
-    { id:'p_1', name:'Rediseño Sitio Web',    desc:'Actualizar identidad visual y arquitectura de información del sitio corporativo.', status:'active',   dueDate:'2025-06-30', color:COLORS[0], createdAt: new Date().toISOString() },
-    { id:'p_2', name:'App Móvil v2.0',         desc:'Nueva versión con mensajería en tiempo real y notificaciones push.',               status:'active',   dueDate:'2025-08-15', color:COLORS[1], createdAt: new Date().toISOString() },
-    { id:'p_3', name:'Campaña Marketing Q2',   desc:'Estrategia de contenido y pauta publicitaria para el segundo trimestre.',          status:'paused',   dueDate:'2025-05-31', color:COLORS[2], createdAt: new Date().toISOString() },
+    { id:'p_1', name:'Rediseño Sitio Web',    desc:'Actualizar identidad visual y arquitectura de información del sitio corporativo.', status:'active',   dueDate:'2025-06-30', color:COLORS[0], assignedUsers:['u_1','u_2','u_3'], createdAt: new Date().toISOString() },
+    { id:'p_2', name:'App Móvil v2.0',         desc:'Nueva versión con mensajería en tiempo real y notificaciones push.',               status:'active',   dueDate:'2025-08-15', color:COLORS[1], assignedUsers:['u_1','u_2'],       createdAt: new Date().toISOString() },
+    { id:'p_3', name:'Campaña Marketing Q2',   desc:'Estrategia de contenido y pauta publicitaria para el segundo trimestre.',          status:'paused',   dueDate:'2025-05-31', color:COLORS[2], assignedUsers:['u_1','u_3'],       createdAt: new Date().toISOString() },
   ];
 
   const users = [
@@ -184,15 +264,15 @@ function seedData() {
   };
 
   const tasks = [
-    { id:'t_1', projectId:'p_1', name:'Wireframes de pantallas principales', desc:'Diseñar los flujos principales en Figma.', status:'done',        priority:'high',   assignedTo:'u_1', dueDate: dt(-20), createdAt: new Date().toISOString() },
-    { id:'t_2', projectId:'p_1', name:'Sistema de colores y tipografía',      desc:'',                                        status:'done',        priority:'medium', assignedTo:'u_2', dueDate: dt(-10), createdAt: new Date().toISOString() },
-    { id:'t_3', projectId:'p_1', name:'Componente Header responsivo',         desc:'Incluir menú hamburger en móvil.',        status:'in_progress', priority:'high',   assignedTo:'u_1', dueDate: dt(5),   createdAt: new Date().toISOString() },
-    { id:'t_4', projectId:'p_1', name:'Pruebas de usabilidad',                desc:'',                                        status:'pending',     priority:'medium', assignedTo:'u_3', dueDate: dt(20),  createdAt: new Date().toISOString() },
-    { id:'t_5', projectId:'p_2', name:'Diseño de base de datos',              desc:'',                                        status:'done',        priority:'high',   assignedTo:'u_2', dueDate: dt(-15), createdAt: new Date().toISOString() },
-    { id:'t_6', projectId:'p_2', name:'API de autenticación JWT',             desc:'',                                        status:'in_progress', priority:'high',   assignedTo:'u_1', dueDate: dt(8),   createdAt: new Date().toISOString() },
-    { id:'t_7', projectId:'p_2', name:'Pantalla de mensajes',                 desc:'Chat en tiempo real con WebSockets.',     status:'pending',     priority:'medium', assignedTo:'u_3', dueDate: dt(25),  createdAt: new Date().toISOString() },
-    { id:'t_8', projectId:'p_3', name:'Definir KPIs de campaña',              desc:'',                                        status:'done',        priority:'high',   assignedTo:'u_1', dueDate: dt(-30), createdAt: new Date().toISOString() },
-    { id:'t_9', projectId:'p_3', name:'Crear contenido para redes sociales',  desc:'',                                        status:'in_progress', priority:'medium', assignedTo:'u_2', dueDate: dt(3),   createdAt: new Date().toISOString() },
+    { id:'t_1', projectId:'p_1', name:'Wireframes de pantallas principales', desc:'Diseñar los flujos principales en Figma.', status:'done',        priority:'high',   assignedTo:['u_1','u_2'], dueDate: dt(-20), createdAt: new Date().toISOString() },
+    { id:'t_2', projectId:'p_1', name:'Sistema de colores y tipografía',      desc:'',                                        status:'done',        priority:'medium', assignedTo:['u_2'],       dueDate: dt(-10), createdAt: new Date().toISOString() },
+    { id:'t_3', projectId:'p_1', name:'Componente Header responsivo',         desc:'Incluir menú hamburger en móvil.',        status:'in_progress', priority:'high',   assignedTo:['u_1','u_3'], dueDate: dt(5),   createdAt: new Date().toISOString() },
+    { id:'t_4', projectId:'p_1', name:'Pruebas de usabilidad',                desc:'',                                        status:'pending',     priority:'medium', assignedTo:['u_3'],       dueDate: dt(20),  createdAt: new Date().toISOString() },
+    { id:'t_5', projectId:'p_2', name:'Diseño de base de datos',              desc:'',                                        status:'done',        priority:'high',   assignedTo:['u_2'],       dueDate: dt(-15), createdAt: new Date().toISOString() },
+    { id:'t_6', projectId:'p_2', name:'API de autenticación JWT',             desc:'',                                        status:'in_progress', priority:'high',   assignedTo:['u_1','u_2'], dueDate: dt(8),   createdAt: new Date().toISOString() },
+    { id:'t_7', projectId:'p_2', name:'Pantalla de mensajes',                 desc:'Chat en tiempo real con WebSockets.',     status:'pending',     priority:'medium', assignedTo:['u_3'],       dueDate: dt(25),  createdAt: new Date().toISOString() },
+    { id:'t_8', projectId:'p_3', name:'Definir KPIs de campaña',              desc:'',                                        status:'done',        priority:'high',   assignedTo:['u_1'],       dueDate: dt(-30), createdAt: new Date().toISOString() },
+    { id:'t_9', projectId:'p_3', name:'Crear contenido para redes sociales',  desc:'',                                        status:'in_progress', priority:'medium', assignedTo:['u_2','u_3'], dueDate: dt(3),   createdAt: new Date().toISOString() },
   ];
 
   saveProjects(projects);

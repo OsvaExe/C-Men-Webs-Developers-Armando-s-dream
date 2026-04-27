@@ -186,6 +186,8 @@
 <script src="shared.js"></script>
 <script>
 checkAuth();
+// Solo admins pueden entrar a Configuración
+if (!isAdmin()) { window.location.href = 'dashboard.html'; }
 seedData();
 initTheme();
 initNav();

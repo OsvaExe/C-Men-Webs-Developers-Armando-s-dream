@@ -185,6 +185,9 @@ function renderCalendar() {
   const month = viewDate.getMonth();
   const today = new Date().toISOString().slice(0,10);
 
+  // Filtrar tareas según rol
+  const visibleTasks = getVisibleTasks(tasks);
+
   // Encabezado
   document.getElementById('calMonthLabel').textContent =
     new Date(year, month, 1).toLocaleDateString('es-MX', { month:'long', year:'numeric' });
@@ -197,7 +200,7 @@ function renderCalendar() {
 
   // Agrupar tareas por dueDate
   const tasksByDay = {};
-  tasks.forEach(t => {
+  visibleTasks.forEach(t => {
     if (!t.dueDate) return;
     if (!tasksByDay[t.dueDate]) tasksByDay[t.dueDate] = [];
     tasksByDay[t.dueDate].push(t);
@@ -243,17 +246,19 @@ function renderCalendar() {
   document.getElementById('calGrid').innerHTML = html;
 
   // Si hay día seleccionado, volver a mostrar detalle
-  if (selectedDay) renderDayDetail(selectedDay, tasks, projects);
+  if (selectedDay) renderDayDetail(selectedDay, visibleTasks, projects, loadAll().users);
 }
 
 function selectDay(dateStr) {
   selectedDay = dateStr;
-  const { tasks, projects } = loadAll();
-  renderDayDetail(dateStr, tasks, projects);
-  renderCalendar(); // para remarcar la celda
+  const { tasks, projects, users } = loadAll();
+  const visibleTasks = getVisibleTasks(tasks);
+  renderDayDetail(dateStr, visibleTasks, projects, users);
+  renderCalendar();
 }
 
-function renderDayDetail(dateStr, tasks, projects) {
+function renderDayDetail(dateStr, tasks, projects, users) {
+  // H17: ordenar por fecha (ya están filtrados al mismo día, ordenar por nombre)
   const dayTasks = tasks.filter(t => t.dueDate === dateStr);
   const detail   = document.getElementById('dayDetail');
   const label    = new Date(dateStr + 'T00:00:00').toLocaleDateString('es-MX', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
@@ -272,12 +277,15 @@ function renderDayDetail(dateStr, tasks, projects) {
     <div class="day-detail-title">📅 ${label} · <span style="color:var(--muted);font-weight:400">${dayTasks.length} tarea${dayTasks.length!==1?'s':''}</span></div>
     ${dayTasks.map(t => {
       const proj = projects.find(p => p.id === t.projectId);
+      const assignedTo = Array.isArray(t.assignedTo) ? t.assignedTo : (t.assignedTo ? [t.assignedTo] : []);
+      const names = assignedTo.map(id => users?.find(u => u.id === id)?.name).filter(Boolean).join(', ');
       return `
       <div class="detail-task">
         <span class="badge badge-${t.status}">${statusLabel[t.status]}</span>
         <div>
           <div class="detail-task-name">${escHtml(t.name)}</div>
           ${proj ? `<div class="detail-proj">📁 ${escHtml(proj.name)}</div>` : ''}
+          ${names ? `<div class="detail-proj">👤 ${escHtml(names)}</div>` : ''}
         </div>
         <span class="badge badge-${t.priority}" style="margin-left:auto">${{high:'Alta',medium:'Media',low:'Baja'}[t.priority]}</span>
       </div>`;

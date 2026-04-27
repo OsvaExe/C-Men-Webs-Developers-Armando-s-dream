@@ -119,17 +119,21 @@ render();
 function render() {
   const { tasks, projects } = loadAll();
 
-  const total   = tasks.length;
-  const pending = tasks.filter(t => t.status === 'pending').length;
-  const inProg  = tasks.filter(t => t.status === 'in_progress').length;
-  const done    = tasks.filter(t => t.status === 'done').length;
-  const high    = tasks.filter(t => t.priority === 'high').length;
-  const medium  = tasks.filter(t => t.priority === 'medium').length;
-  const low     = tasks.filter(t => t.priority === 'low').length;
+  // Filtrar según rol
+  const myTasks    = getVisibleTasks(tasks);
+  const myProjects = getVisibleProjects(projects, tasks);
+
+  const total   = myTasks.length;
+  const pending = myTasks.filter(t => t.status === 'pending').length;
+  const inProg  = myTasks.filter(t => t.status === 'in_progress').length;
+  const done    = myTasks.filter(t => t.status === 'done').length;
+  const high    = myTasks.filter(t => t.priority === 'high').length;
+  const medium  = myTasks.filter(t => t.priority === 'medium').length;
+  const low     = myTasks.filter(t => t.priority === 'low').length;
 
   // ── Stats ───────────────────────────────────
   document.getElementById('statsGrid').innerHTML = `
-    <div class="stat-card"><div class="stat-icon blue">📋</div><div><div class="stat-value">${total}</div><div class="stat-label">Total tareas</div></div></div>
+    <div class="stat-card"><div class="stat-icon blue">📋</div><div><div class="stat-value">${total}</div><div class="stat-label">${isAdmin() ? 'Total tareas' : 'Mis tareas'}</div></div></div>
     <div class="stat-card"><div class="stat-icon amber">🕐</div><div><div class="stat-value">${pending}</div><div class="stat-label">Pendientes</div></div></div>
     <div class="stat-card"><div class="stat-icon blue">⚡</div><div><div class="stat-value">${inProg}</div><div class="stat-label">En progreso</div></div></div>
     <div class="stat-card"><div class="stat-icon green">✅</div><div><div class="stat-value">${done}</div><div class="stat-label">Completadas</div></div></div>
@@ -191,12 +195,12 @@ function render() {
     </div>`).join('');
 
   // ── Progreso por proyecto ────────────────────
-  if (!projects.length) {
-    document.getElementById('projProgressList').innerHTML = `<div class="empty-state" style="padding:2rem"><div class="empty-icon">📂</div><div class="empty-sub">Sin proyectos aún.</div></div>`;
+  if (!myProjects.length) {
+    document.getElementById('projProgressList').innerHTML = `<div class="empty-state" style="padding:2rem"><div class="empty-icon">📂</div><div class="empty-sub">${isAdmin() ? 'Sin proyectos aún.' : 'No tienes proyectos asignados.'}</div></div>`;
     return;
   }
 
-  document.getElementById('projProgressList').innerHTML = projects.map(p => {
+  document.getElementById('projProgressList').innerHTML = myProjects.map(p => {
     const prog = projectProgress(p.id);
     return `
     <div class="proj-prog-item">
