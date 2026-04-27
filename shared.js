@@ -24,9 +24,16 @@ function setSession(user) {
 function clearSession() {
   localStorage.removeItem(KEYS.session);
 }
-// Redirige a login si no hay sesión activa.
+// Bug 3 fix: verifica que el usuario de la sesión siga existiendo en storage.
+// Si fue eliminado por un admin en otra pestaña, fuerza el logout.
 function checkAuth() {
-  if (!getSession()) { window.location.href = 'login.html'; }
+  const s = getSession();
+  if (!s) { window.location.href = 'login.html'; return; }
+  const { users } = loadAll();
+  if (!users.find(u => u.id === s.id)) {
+    clearSession();
+    window.location.href = 'login.html';
+  }
 }
 function logout() {
   clearSession();
@@ -39,8 +46,22 @@ const COLORS = [
 ];
 
 // ── ALMACENAMIENTO ────────────────────────────
+// Bug 4 fix: detecta localStorage corrupto y avisa en lugar de silenciarlo.
 function loadAll() {
-  const parse = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) || d; } catch { return d; } };
+  function parse(k, d) {
+    const raw = localStorage.getItem(k);
+    if (raw === null) return d;
+    try {
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) throw new Error('not an array');
+      return parsed;
+    } catch {
+      // Guardar backup del dato corrupto para no perderlo
+      localStorage.setItem(k + '_corrupted_backup', raw);
+      console.warn(`[TaskFlow] Dato corrupto en "${k}". Backup guardado en "${k}_corrupted_backup".`);
+      return d;
+    }
+  }
   return {
     projects: parse(KEYS.projects, []),
     tasks:    parse(KEYS.tasks,    []),
@@ -104,22 +125,30 @@ function showToast(msg, type = 'info') {
 // ── HELPERS DE ROL ────────────────────────────
 function isAdmin() {
   const s = getSession();
-  return s && s.role === 'admin';
+  if (!s) return false;
+  // Verificar siempre contra el storage real por si la sesión está desactualizada
+  const { users } = loadAll();
+  const live = users.find(u => u.id === s.id);
+  return live ? live.role === 'admin' : s.role === 'admin';
 }
 function getMyId() {
   const s = getSession();
   return s ? s.id : null;
 }
-// Devuelve solo los proyectos donde el miembro tiene tareas asignadas
-// O está asignado directamente al proyecto.
-// Si es admin, devuelve todos.
+// Devuelve solo los proyectos donde el miembro tiene acceso:
+// - Es admin → ve todos
+// - Está en assignedUsers del proyecto → lo ve
+// - Tiene al menos una tarea asignada en el proyecto → lo ve
+// - Lo creó él → lo ve
 function getVisibleProjects(projects, tasks) {
   if (isAdmin()) return projects;
   const myId = getMyId();
   return projects.filter(p => {
-    // 1. Asignado directamente al proyecto
+    // 1. Lo creó él
+    if (p.createdBy === myId) return true;
+    // 2. Está asignado directamente
     if (Array.isArray(p.assignedUsers) && p.assignedUsers.includes(myId)) return true;
-    // 2. Tiene al menos una tarea asignada en el proyecto
+    // 3. Tiene al menos una tarea asignada
     return tasks.some(t => {
       if (t.projectId !== p.id) return false;
       const at = Array.isArray(t.assignedTo) ? t.assignedTo : (t.assignedTo ? [t.assignedTo] : []);
@@ -236,18 +265,33 @@ function migrateTasks() {
   if (changed) saveTasks(updated);
 }
 
-// ── DATOS DE EJEMPLO ──────────────────────────
+// ── MIGRACIÓN DE PROYECTOS ────────────────────
+// Añade createdBy a proyectos que no lo tengan (asigna al primer admin).
+function migrateProjects() {
+  const { projects, users } = loadAll();
+  const firstAdmin = users.find(u => u.role === 'admin');
+  let changed = false;
+  const updated = projects.map(p => {
+    if (!p.createdBy) {
+      changed = true;
+      return { ...p, createdBy: firstAdmin ? firstAdmin.id : null, assignedUsers: p.assignedUsers || [] };
+    }
+    return { ...p, assignedUsers: p.assignedUsers || [] };
+  });
+  if (changed) saveProjects(updated);
+}
 function seedData() {
   ensureAdmin();
   migrateUsers();
-  migrateTasks(); // convierte assignedTo a array
+  migrateTasks();
+  migrateProjects();
   const data = loadAll();
   if (data.projects.length) return;
 
   const projects = [
-    { id:'p_1', name:'Rediseño Sitio Web',    desc:'Actualizar identidad visual y arquitectura de información del sitio corporativo.', status:'active',   dueDate:'2025-06-30', color:COLORS[0], assignedUsers:['u_1','u_2','u_3'], createdAt: new Date().toISOString() },
-    { id:'p_2', name:'App Móvil v2.0',         desc:'Nueva versión con mensajería en tiempo real y notificaciones push.',               status:'active',   dueDate:'2025-08-15', color:COLORS[1], assignedUsers:['u_1','u_2'],       createdAt: new Date().toISOString() },
-    { id:'p_3', name:'Campaña Marketing Q2',   desc:'Estrategia de contenido y pauta publicitaria para el segundo trimestre.',          status:'paused',   dueDate:'2025-05-31', color:COLORS[2], assignedUsers:['u_1','u_3'],       createdAt: new Date().toISOString() },
+    { id:'p_1', name:'Rediseño Sitio Web',  desc:'Actualizar identidad visual y arquitectura de información del sitio corporativo.', status:'active', dueDate:'2025-06-30', color:COLORS[0], assignedUsers:['u_1','u_2','u_3'], createdBy:'u_1', createdAt: new Date().toISOString() },
+    { id:'p_2', name:'App Móvil v2.0',       desc:'Nueva versión con mensajería en tiempo real y notificaciones push.',               status:'active', dueDate:'2025-08-15', color:COLORS[1], assignedUsers:['u_1','u_2'],       createdBy:'u_1', createdAt: new Date().toISOString() },
+    { id:'p_3', name:'Campaña Marketing Q2', desc:'Estrategia de contenido y pauta publicitaria para el segundo trimestre.',          status:'paused', dueDate:'2025-05-31', color:COLORS[2], assignedUsers:['u_1','u_3'],       createdBy:'u_1', createdAt: new Date().toISOString() },
   ];
 
   const users = [

@@ -306,15 +306,36 @@ function promptDelUser(id) {
 });
 
 document.getElementById('delUserConfirm').addEventListener('click', () => {
-  const { users, tasks } = loadAll();
+  const { users, tasks, projects } = loadAll();
   const target = users.find(u => u.id === delUserTargetId);
   if (!target || target.role === 'admin') return;
 
-  saveUsers(users.filter(u => u.id !== delUserTargetId));
-  saveTasks(tasks.map(t => t.assignedTo === delUserTargetId ? { ...t, assignedTo: '' } : t));
+  const uid = delUserTargetId;
+
+  // Limpiar de tareas: assignedTo puede ser string o array
+  const cleanedTasks = tasks.map(t => {
+    const at = Array.isArray(t.assignedTo) ? t.assignedTo : (t.assignedTo ? [t.assignedTo] : []);
+    return { ...t, assignedTo: at.filter(id => id !== uid) };
+  });
+
+  // Limpiar de proyectos: assignedUsers y createdBy
+  const cleanedProjects = projects.map(p => ({
+    ...p,
+    assignedUsers: Array.isArray(p.assignedUsers) ? p.assignedUsers.filter(id => id !== uid) : [],
+    createdBy: p.createdBy === uid ? null : p.createdBy,
+  }));
+
+  saveUsers(users.filter(u => u.id !== uid));
+  saveTasks(cleanedTasks);
+  saveProjects(cleanedProjects);
+
+  // Bug 3: si el usuario eliminado tenía sesión activa en esta misma pestaña, cerrarla
+  const sess = getSession();
+  if (sess && sess.id === uid) { logout(); return; }
+
   renderUsers();
   document.getElementById('delUserOverlay').classList.remove('open');
-  showToast(`Usuario "${target.name}" eliminado.`, 'error');
+  showToast(`Usuario "${target.name}" eliminado y sus asignaciones limpiadas.`, 'error');
 });
 
 /* ── INIT ───────────────────────────────────── */
