@@ -394,6 +394,8 @@ function renderUserList(users, query = '') {
       <div class="pu-role">${roleIcon} ${u.role === 'admin' ? 'Admin' : 'Miembro'}</div>
     </label>`;
   }).join('');
+} // fin renderUserList
+
 function closeModal() { document.getElementById('projOverlay').classList.remove('open'); }
 
 function renderSwatches() {
