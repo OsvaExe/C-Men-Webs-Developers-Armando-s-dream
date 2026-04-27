@@ -280,14 +280,19 @@ function renderDayDetail(dateStr, tasks, projects, users) {
       const assignedTo = Array.isArray(t.assignedTo) ? t.assignedTo : (t.assignedTo ? [t.assignedTo] : []);
       const names = assignedTo.map(id => users?.find(u => u.id === id)?.name).filter(Boolean).join(', ');
       return `
-      <div class="detail-task">
+      <div class="detail-task clickable"
+           onclick="window.location.href='kanban.html?p=${t.projectId}&t=${t.id}'"
+           title="Ir a esta tarea en el Kanban">
         <span class="badge badge-${t.status}">${statusLabel[t.status]}</span>
-        <div>
+        <div style="flex:1">
           <div class="detail-task-name">${escHtml(t.name)}</div>
           ${proj ? `<div class="detail-proj">📁 ${escHtml(proj.name)}</div>` : ''}
           ${names ? `<div class="detail-proj">👤 ${escHtml(names)}</div>` : ''}
         </div>
-        <span class="badge badge-${t.priority}" style="margin-left:auto">${{high:'Alta',medium:'Media',low:'Baja'}[t.priority]}</span>
+        <div style="display:flex;align-items:center;gap:.4rem;flex-shrink:0">
+          <span class="badge badge-${t.priority}">${{high:'Alta',medium:'Media',low:'Baja'}[t.priority]}</span>
+          <span style="color:var(--accent);font-size:.85rem">→</span>
+        </div>
       </div>`;
     }).join('')}`;
 }

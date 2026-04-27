@@ -413,3 +413,50 @@ textarea { resize: vertical; min-height: 78px; }
   .stats-grid { grid-template-columns:repeat(2,1fr); }
 }
 @media (max-width:480px) { .stats-grid { grid-template-columns:1fr; } }
+
+/* ── TASK HIGHLIGHT (navegación desde dashboard/calendario) ── */
+@keyframes taskHighlight {
+  0%   { box-shadow: 0 0 0 0 rgba(91,106,240,.8); border-color: var(--accent); }
+  50%  { box-shadow: 0 0 0 8px rgba(91,106,240,.0); }
+  100% { box-shadow: 0 0 0 0 rgba(91,106,240,.0); border-color: var(--border); }
+}
+.task-card.highlighted {
+  animation: taskHighlight 1.6s ease 3;
+  scroll-margin-top: 1rem;
+}
+
+/* ── BÚSQUEDA DE USUARIOS EN MODAL ── */
+.user-search-wrap {
+  position: relative; margin-bottom: .5rem;
+}
+.user-search-wrap input {
+  padding-left: 2.1rem; font-size: .82rem;
+}
+.user-search-wrap .usi {
+  position: absolute; left: .75rem; top: 50%;
+  transform: translateY(-50%); color: var(--muted);
+  font-size: .78rem; pointer-events: none;
+}
+.user-search-empty {
+  font-size: .8rem; color: var(--muted);
+  text-align: center; padding: .75rem 0;
+}
+
+/* Actividad reciente clickeable */
+.activity-item.clickable {
+  cursor: pointer; transition: all var(--tr);
+}
+.activity-item.clickable:hover {
+  border-color: var(--accent);
+  background: rgba(91,106,240,.05);
+  transform: translateX(3px);
+}
+
+/* Tarea del calendario clickeable */
+.detail-task.clickable {
+  cursor: pointer; transition: all var(--tr);
+}
+.detail-task.clickable:hover {
+  background: rgba(91,106,240,.08);
+  border-radius: var(--radius-sm);
+}

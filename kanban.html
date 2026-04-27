@@ -307,9 +307,24 @@ initTheme();
 initNav();
 
 const qp = new URLSearchParams(window.location.search).get('p');
+const qt = new URLSearchParams(window.location.search).get('t'); // tarea a destacar
 buildProjSelect(qp);
 initFilters();
 renderBoard();
+
+// Si viene con ?t= destacar esa tarea
+if (qt) {
+  setTimeout(() => highlightTask(qt), 300);
+}
+
+function highlightTask(taskId) {
+  const el = document.querySelector(`[data-task-id="${taskId}"]`);
+  if (!el) return;
+  el.classList.add('highlighted');
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  // Quitar clase después de la animación
+  setTimeout(() => el.classList.remove('highlighted'), 5200);
+}
 
 /* ── SELECTOR DE PROYECTO ───────────────────── */
 function buildProjSelect(preselect) {

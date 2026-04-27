@@ -167,7 +167,11 @@
       </div>
       <div class="form-group">
         <label class="form-label">Miembros del proyecto <span style="color:var(--muted);font-weight:400;text-transform:none;font-size:.75rem">(pueden ver este proyecto)</span></label>
-        <div id="projUserList" style="display:flex;flex-direction:column;gap:.4rem;max-height:160px;overflow-y:auto"></div>
+        <div class="user-search-wrap">
+          <span class="usi">🔍</span>
+          <input type="text" id="userSearch" placeholder="Buscar usuario…" autocomplete="off" />
+        </div>
+        <div id="projUserList" style="display:flex;flex-direction:column;gap:.4rem;max-height:180px;overflow-y:auto"></div>
       </div>
     </div>
     <div class="modal-footer">
@@ -211,12 +215,6 @@ checkAuth();
 seedData();
 initTheme();
 initNav();
-
-// Ocultar botón "Nuevo Proyecto" y controles de edición/eliminación a miembros
-if (!isAdmin()) {
-  document.getElementById('newProjBtn').style.display = 'none';
-}
-
 render();
 
 /* ── RENDER ─────────────────────────────────── */
@@ -226,11 +224,11 @@ function render() {
   // Filtrar proyectos según rol
   const myProjects = getVisibleProjects(projects, tasks);
 
+  const myId = getMyId();
+
   // Subtítulo
   document.getElementById('projCount').textContent =
-    isAdmin()
-      ? `${myProjects.length} proyecto${myProjects.length !== 1 ? 's' : ''} en total`
-      : `${myProjects.length} proyecto${myProjects.length !== 1 ? 's' : ''} asignados a ti`;
+    `${myProjects.length} proyecto${myProjects.length !== 1 ? 's' : ''}`;
 
   // Stats
   document.getElementById('statsGrid').innerHTML = `
@@ -277,8 +275,9 @@ function render() {
         </div>`
       : '';
 
-    // Menú según rol
-    const menuItems = isAdmin()
+    // Menú según rol: admin ve todo, miembro solo ve lo que creó
+    const canManage = isAdmin() || p.createdBy === myId;
+    const menuItems = canManage
       ? `<button class="dd-item" onclick="openModal('${p.id}')">✏️ Editar</button>
          <a href="kanban.html?p=${p.id}" class="dd-item">📋 Ver Kanban</a>
          <button class="dd-item danger" onclick="promptDelete('${p.id}')">🗑️ Eliminar</button>`
@@ -341,7 +340,8 @@ function openModal(editId) {
   document.getElementById('nameErr').style.display = 'none';
   renderSwatches();
 
-  // Renderizar checkboxes de usuarios
+  // Renderizar lista de usuarios con la función compartida
+  // (pAssigned se toma de los checkboxes, pero aquí seteamos desde p directamente)
   document.getElementById('projUserList').innerHTML = users.map(u => {
     const checked  = pAssigned.includes(u.id);
     const color    = avColor(u.id);
@@ -359,7 +359,41 @@ function openModal(editId) {
 
   document.getElementById('projOverlay').classList.add('open');
   setTimeout(() => document.getElementById('projName').focus(), 80);
+
+  // Búsqueda de usuarios en el modal
+  const searchInput = document.getElementById('userSearch');
+  searchInput.value = '';
+  searchInput.oninput = () => renderUserList(users, searchInput.value.toLowerCase().trim());
 }
+
+function renderUserList(users, query = '') {
+  const pAssigned = [...document.querySelectorAll('#projUserList input[type="checkbox"]:checked')]
+    .map(cb => cb.value);
+
+  const filtered = query
+    ? users.filter(u => u.name.toLowerCase().includes(query) || (u.username||'').toLowerCase().includes(query))
+    : users;
+
+  if (!filtered.length) {
+    document.getElementById('projUserList').innerHTML =
+      `<div class="user-search-empty">Sin resultados para "${escHtml(query)}"</div>`;
+    return;
+  }
+
+  document.getElementById('projUserList').innerHTML = filtered.map(u => {
+    const checked  = pAssigned.includes(u.id);
+    const color    = avColor(u.id);
+    const initial  = u.name.charAt(0).toUpperCase();
+    const roleIcon = u.role === 'admin' ? '🔐' : '👤';
+    return `
+    <label class="proj-user-item${checked ? ' selected' : ''}">
+      <input type="checkbox" value="${u.id}" ${checked ? 'checked' : ''}
+             onchange="this.closest('.proj-user-item').classList.toggle('selected',this.checked)" />
+      <div class="pu-avatar" style="background:${color}">${initial}</div>
+      <div class="pu-name">${escHtml(u.name)}</div>
+      <div class="pu-role">${roleIcon} ${u.role === 'admin' ? 'Admin' : 'Miembro'}</div>
+    </label>`;
+  }).join('');
 function closeModal() { document.getElementById('projOverlay').classList.remove('open'); }
 
 function renderSwatches() {
@@ -387,8 +421,12 @@ document.getElementById('saveBtn').addEventListener('click', () => {
   const editId  = document.getElementById('editId').value;
 
   // Recoger usuarios seleccionados
-  const assignedUsers = [...document.querySelectorAll('#projUserList input[type="checkbox"]:checked')]
+  let assignedUsers = [...document.querySelectorAll('#projUserList input[type="checkbox"]:checked')]
     .map(cb => cb.value);
+
+  // Siempre incluir al creador/editor en assignedUsers para que pueda ver el proyecto
+  const myId = getMyId();
+  if (myId && !assignedUsers.includes(myId)) assignedUsers.push(myId);
 
   if (!name) { document.getElementById('nameErr').style.display = 'block'; document.getElementById('projName').focus(); return; }
   document.getElementById('nameErr').style.display = 'none';
@@ -400,7 +438,14 @@ document.getElementById('saveBtn').addEventListener('click', () => {
     if (idx !== -1) projects[idx] = { ...projects[idx], name, desc, status, dueDate, color: selectedColor, assignedUsers };
     showToast('Proyecto actualizado exitosamente.', 'success');
   } else {
-    projects.unshift({ id: genId('p'), name, desc, status, dueDate, color: selectedColor, assignedUsers, createdAt: new Date().toISOString() });
+    projects.unshift({
+      id: genId('p'),
+      name, desc, status, dueDate,
+      color: selectedColor,
+      assignedUsers,
+      createdBy: myId,
+      createdAt: new Date().toISOString()
+    });
     showToast('Proyecto creado exitosamente.', 'success');
   }
 

@@ -176,13 +176,18 @@
         const { users } = loadAll();
         const names = assignedTo.map(id => users.find(u => u.id === id)?.name?.split(' ')[0]).filter(Boolean).join(', ');
         return `
-          <div class="activity-item">
+          <div class="activity-item clickable"
+               onclick="window.location.href='kanban.html?p=${t.projectId}&t=${t.id}'"
+               title="Ir a esta tarea en el Kanban">
             <div class="act-dot" style="background:${statusDot[t.status]}"></div>
             <div class="act-info">
               <div class="act-name">${escHtml(t.name)}</div>
               <div class="act-proj">${proj ? escHtml(proj.name) : 'Sin proyecto'}${names ? ` · 👤 ${escHtml(names)}` : ''}</div>
             </div>
-            <div class="act-date">${formatDate(t.dueDate)}</div>
+            <div style="display:flex;align-items:center;gap:.5rem">
+              <div class="act-date">${formatDate(t.dueDate)}</div>
+              <span style="color:var(--accent);font-size:.78rem">→</span>
+            </div>
           </div>`;
       }).join('') + '</div>';
     }
