@@ -272,11 +272,32 @@ function migrateProjects() {
   const firstAdmin = users.find(u => u.role === 'admin');
   let changed = false;
   const updated = projects.map(p => {
-    if (!p.createdBy) {
+    const normalized = {
+      ...p,
+      // Compatibilidad con estructuras antiguas
+      name: p.name || p.title || 'Proyecto sin nombre',
+      desc: p.desc ?? p.description ?? '',
+      assignedUsers: Array.isArray(p.assignedUsers)
+        ? p.assignedUsers
+        : (Array.isArray(p.members) ? p.members : []),
+      dueDate: p.dueDate || p.deadline || '',
+      status: p.status || 'active',
+      color: p.color || COLORS[0],
+      createdBy: p.createdBy || (firstAdmin ? firstAdmin.id : null),
+    };
+
+    if (
+      normalized.name !== p.name ||
+      normalized.desc !== p.desc ||
+      normalized.dueDate !== p.dueDate ||
+      normalized.status !== p.status ||
+      normalized.color !== p.color ||
+      normalized.createdBy !== p.createdBy ||
+      !Array.isArray(p.assignedUsers)
+    ) {
       changed = true;
-      return { ...p, createdBy: firstAdmin ? firstAdmin.id : null, assignedUsers: p.assignedUsers || [] };
     }
-    return { ...p, assignedUsers: p.assignedUsers || [] };
+    return normalized;
   });
   if (changed) saveProjects(updated);
 }

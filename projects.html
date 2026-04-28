@@ -209,6 +209,8 @@ let filter = 'all';
 let search = '';
 let selectedColor = COLORS[0];
 let delTargetId = null;
+const AVC = ['#5b6af0','#7ee8a2','#f0a05b','#f05b6a','#a05bf0','#5bc8f0'];
+function avColor(id) { let s=0; for(let i=0;i<id.length;i++) s+=id.charCodeAt(i); return AVC[s%AVC.length]; }
 
 /* ── INIT ───────────────────────────────────── */
 checkAuth();
@@ -241,7 +243,9 @@ function render() {
   // Lista filtrada
   const list = myProjects.filter(p => {
     const mf = filter === 'all' || p.status === filter;
-    const ms = p.name.toLowerCase().includes(search) || (p.desc||'').toLowerCase().includes(search);
+    const safeName = (p.name || p.title || '').toLowerCase();
+    const safeDesc = (p.desc || p.description || '').toLowerCase();
+    const ms = safeName.includes(search) || safeDesc.includes(search);
     return mf && ms;
   });
 
@@ -262,15 +266,23 @@ function render() {
   };
 
   grid.innerHTML = list.map(p => {
-    const prog = projectProgress(p.id);
-    const assigned = Array.isArray(p.assignedUsers) ? p.assignedUsers : [];
+    const pid = p.id || '';
+    const pName = p.name || p.title || 'Proyecto sin nombre';
+    const pDesc = p.desc || p.description || '';
+    const pStatus = p.status || 'inactive';
+    const pColor = p.color || COLORS[0];
+    const pDueDate = p.dueDate || p.deadline || '';
+    const assigned = Array.isArray(p.assignedUsers)
+      ? p.assignedUsers
+      : (Array.isArray(p.members) ? p.members : (Array.isArray(p.team) ? p.team : []));
+    const prog = projectProgress(pid);
     const { users } = loadAll();
     const maxAv = 4;
     const shownUsers = assigned.slice(0, maxAv).map(id => users.find(u => u.id === id)).filter(Boolean);
     const extra = assigned.length - maxAv;
     const avatarsHtml = shownUsers.length
-      ? `<div class="proj-avatars" title="${shownUsers.map(u=>u.name).join(', ')}">
-          ${shownUsers.map(u => `<div class="p-avatar" style="background:${avColor(u.id)}">${u.name.charAt(0)}</div>`).join('')}
+      ? `<div class="proj-avatars" title="${shownUsers.map(u => u.name || u.username || 'Usuario').join(', ')}">
+          ${shownUsers.map(u => `<div class="p-avatar" style="background:${avColor(u.id || '')}">${(u.name || u.username || '?').charAt(0)}</div>`).join('')}
           ${extra > 0 ? `<div class="p-avatar p-avatar-more">+${extra}</div>` : ''}
         </div>`
       : '';
@@ -278,32 +290,32 @@ function render() {
     // Menú según rol: admin ve todo, miembro solo ve lo que creó
     const canManage = isAdmin() || p.createdBy === myId;
     const menuItems = canManage
-      ? `<button class="dd-item" onclick="openModal('${p.id}')">✏️ Editar</button>
-         <a href="kanban.html?p=${p.id}" class="dd-item">📋 Ver Kanban</a>
-         <button class="dd-item danger" onclick="promptDelete('${p.id}')">🗑️ Eliminar</button>`
-      : `<a href="kanban.html?p=${p.id}" class="dd-item">📋 Ver Kanban</a>`;
+      ? `<button class="dd-item" onclick="openModal('${pid}')">✏️ Editar</button>
+         <a href="kanban.html?p=${pid}" class="dd-item">📋 Ver Kanban</a>
+         <button class="dd-item danger" onclick="promptDelete('${pid}')">🗑️ Eliminar</button>`
+      : `<a href="kanban.html?p=${pid}" class="dd-item">📋 Ver Kanban</a>`;
 
     return `
-    <div class="project-card" style="--card-color:${p.color}">
+    <div class="project-card" style="--card-color:${pColor}">
       <div class="card-header">
-        <div class="card-title">${escHtml(p.name)}</div>
+        <div class="card-title">${escHtml(pName)}</div>
         <div class="dd-wrap">
-          <button class="card-menu-btn" onclick="toggleMenu('${p.id}')">⋯</button>
-          <div class="dd-menu" id="menu-${p.id}">
+          <button class="card-menu-btn" onclick="toggleMenu('${pid}')">⋯</button>
+          <div class="dd-menu" id="menu-${pid}">
             ${menuItems}
           </div>
         </div>
       </div>
-      <p class="card-desc">${escHtml(p.desc || 'Sin descripción.')}</p>
+      <p class="card-desc">${escHtml(pDesc || 'Sin descripción.')}</p>
       <div class="card-meta">
-        ${statusBadge[p.status] || ''}
-        ${p.dueDate ? `<span class="card-date">📅 ${formatDate(p.dueDate)}</span>` : ''}
+        ${statusBadge[pStatus] || statusBadge.inactive}
+        ${pDueDate ? `<span class="card-date">📅 ${formatDate(pDueDate)}</span>` : ''}
       </div>
       ${avatarsHtml}
       <div class="card-footer">
         <div class="prog-wrap">
           <div class="prog-meta"><span>Progreso</span><span>${prog.pct}%</span></div>
-          <div class="prog-track"><div class="prog-fill" style="width:${prog.pct}%;background:${p.color}"></div></div>
+          <div class="prog-track"><div class="prog-fill" style="width:${prog.pct}%;background:${pColor}"></div></div>
         </div>
         <span class="task-count">${prog.done}/${prog.total} tareas</span>
       </div>
@@ -322,8 +334,6 @@ function closeMenus() { document.querySelectorAll('.dd-menu.open').forEach(el =>
 document.addEventListener('click', e => { if (!e.target.classList.contains('card-menu-btn')) closeMenus(); });
 
 /* ── MODAL ──────────────────────────────────── */
-const AVC = ['#5b6af0','#7ee8a2','#f0a05b','#f05b6a','#a05bf0','#5bc8f0'];
-function avColor(id) { let s=0; for(let i=0;i<id.length;i++) s+=id.charCodeAt(i); return AVC[s%AVC.length]; }
 
 function openModal(editId) {
   const { projects, users } = loadAll();
