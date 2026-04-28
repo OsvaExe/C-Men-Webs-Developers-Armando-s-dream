@@ -209,6 +209,8 @@ let filter = 'all';
 let search = '';
 let selectedColor = COLORS[0];
 let delTargetId = null;
+const AVC = ['#5b6af0','#7ee8a2','#f0a05b','#f05b6a','#a05bf0','#5bc8f0'];
+function avColor(id) { let s=0; for(let i=0;i<id.length;i++) s+=id.charCodeAt(i); return AVC[s%AVC.length]; }
 
 /* ── INIT ───────────────────────────────────── */
 checkAuth();
@@ -332,8 +334,6 @@ function closeMenus() { document.querySelectorAll('.dd-menu.open').forEach(el =>
 document.addEventListener('click', e => { if (!e.target.classList.contains('card-menu-btn')) closeMenus(); });
 
 /* ── MODAL ──────────────────────────────────── */
-const AVC = ['#5b6af0','#7ee8a2','#f0a05b','#f05b6a','#a05bf0','#5bc8f0'];
-function avColor(id) { let s=0; for(let i=0;i<id.length;i++) s+=id.charCodeAt(i); return AVC[s%AVC.length]; }
 
 function openModal(editId) {
   const { projects, users } = loadAll();
