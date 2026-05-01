@@ -1,0 +1,36 @@
+/* ═══════════════════════════════════════
+   login.css — Estilos de la pantalla de Login
+   ═══════════════════════════════════════ */
+
+.theme-toggle-corner {
+  position: fixed; top: 1rem; right: 1rem;
+}
+
+/* Mostrar / ocultar contraseña */
+.pass-wrap { position: relative; }
+.pass-wrap input { padding-right: 2.6rem; }
+.pass-toggle {
+  position: absolute; right: .75rem; top: 50%;
+  transform: translateY(-50%);
+  background: none; border: none; cursor: pointer;
+  color: var(--muted); font-size: .9rem;
+  transition: color var(--tr);
+}
+.pass-toggle:hover { color: var(--text); }
+
+/* Hint de credenciales demo */
+.demo-hint {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: .75rem 1rem;
+  font-size: .76rem; color: var(--muted); line-height: 1.6;
+}
+.demo-hint strong { color: var(--text); font-weight: 600; }
+
+/* Caja de error de login */
+.login-error-box {
+  background: rgba(240,91,106,.1); border: 1px solid rgba(240,91,106,.3);
+  border-radius: var(--radius-sm); padding: .65rem .9rem;
+  font-size: .82rem; color: var(--danger);
+  display: none; align-items: center; gap: .5rem;
+}
+.login-error-box.visible { display: flex; }

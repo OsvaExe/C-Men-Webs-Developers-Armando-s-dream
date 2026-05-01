@@ -1,76 +1,13 @@
 <!DOCTYPE html>
 <html lang="es" data-theme="dark">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>TaskFlow — Configuración</title>
-  <link rel="stylesheet" href="styles.css" />
-  <style>
-    .settings-layout { display:flex; flex-direction:column; gap:1.5rem; max-width:720px; }
-
-    .setting-section {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: var(--radius); overflow: hidden;
-    }
-    .section-head {
-      padding: 1rem 1.4rem; border-bottom: 1px solid var(--border);
-      display: flex; align-items: center; gap: .7rem;
-    }
-    .section-head-icon { font-size: 1.1rem; }
-    .section-head-title { font-family:'Syne',sans-serif; font-weight:700; font-size:.95rem; }
-    .section-head-sub { font-size:.78rem; color:var(--muted); margin-top:.1rem; }
-    .section-body { padding: 1.2rem 1.4rem; display: flex; flex-direction: column; gap: 1rem; }
-
-    /* User list */
-    .user-list { display:flex; flex-direction:column; gap:.5rem; }
-    .user-item {
-      display:flex; align-items:center; gap:.75rem;
-      padding:.7rem .9rem; background:var(--surface2);
-      border-radius:var(--radius-sm); border:1px solid var(--border);
-    }
-    .user-avatar {
-      width:34px; height:34px; border-radius:50%;
-      display:flex; align-items:center; justify-content:center;
-      font-size:.9rem; font-weight:700; color:#fff; flex-shrink:0;
-    }
-    .user-info { flex:1; min-width:0; }
-    .user-name { font-size:.9rem; font-weight:500; }
-    .user-username { font-size:.75rem; color:var(--muted); margin-top:.1rem; }
-    .user-role-badge {
-      display:inline-flex; align-items:center; gap:.25rem;
-      font-size:.7rem; font-weight:600; padding:.15rem .55rem;
-      border-radius:99px;
-    }
-    .role-admin  { background:rgba(91,106,240,.15); color:var(--accent); }
-    .role-member { background:rgba(107,114,144,.15); color:var(--muted); }
-
-    .user-del {
-      width:28px; height:28px; border-radius:6px;
-      display:flex; align-items:center; justify-content:center;
-      color:var(--muted); font-size:.85rem; transition:all var(--tr);
-    }
-    .user-del:hover { background:rgba(240,91,106,.15); color:var(--danger); }
-    .admin-lock { font-size:.75rem; color:var(--muted); display:flex; align-items:center; gap:.3rem; flex-shrink:0; }
-
-    /* Add user form */
-    .add-user-form { display:flex; flex-direction:column; gap:.65rem; padding-top:.25rem; }
-    .add-user-grid { display:grid; grid-template-columns:1fr 1fr; gap:.65rem; }
-    @media (max-width:560px) { .add-user-grid { grid-template-columns:1fr; } }
-
-    /* password eye toggle */
-    .pass-field { position:relative; }
-    .pass-field input { padding-right:2.4rem; }
-    .pass-eye {
-      position:absolute; right:.7rem; top:50%; transform:translateY(-50%);
-      background:none; border:none; cursor:pointer; color:var(--muted);
-      font-size:.85rem; transition:color var(--tr);
-    }
-    .pass-eye:hover { color:var(--text); }
-  </style>
+  <link rel="stylesheet" href="styles.css"/>
+  <link rel="stylesheet" href="settings.css"/>
 </head>
 <body>
 <button class="hamburger" id="hamburger">☰</button>
-
 <div class="app">
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-logo"><span class="logo-dot"></span>TaskFlow</div>
@@ -85,261 +22,259 @@
     </nav>
     <div class="sidebar-bottom">
       <div id="sidebarUser"></div>
-      <div class="sb-bottom-row">
-        <span class="sidebar-version">v1.0</span>
-        <button class="theme-btn" id="themeBtn">🌙</button>
-      </div>
+      <div class="sb-bottom-row"><span class="sidebar-version">v1.0</span><button class="theme-btn" id="themeBtn">🌙</button></div>
     </div>
   </aside>
-
   <div class="content">
     <header class="page-header">
-      <div>
-        <h1 class="page-title">Configuración</h1>
-        <p class="page-sub">Gestiona los perfiles de usuario de la aplicación.</p>
-      </div>
+      <div><h1 class="page-title">Configuración</h1><p class="page-sub" id="settingsSub">Gestiona los perfiles de usuario.</p></div>
     </header>
-
     <main class="page-main">
-      <div class="settings-layout">
 
+      <!-- ── VISTA ADMIN ── -->
+      <div id="viewAdmin" class="settings-layout" style="display:none">
         <div class="setting-section">
-          <div class="section-head">
-            <span class="section-head-icon">👥</span>
-            <div>
-              <div class="section-head-title">Perfiles de usuario</div>
-              <div class="section-head-sub">Agrega miembros para asignarles tareas. Cada usuario necesita un nombre de usuario y contraseña para iniciar sesión.</div>
-            </div>
-          </div>
+          <div class="section-head"><span class="section-head-icon">👥</span><div><div class="section-head-title">Perfiles de usuario</div><div class="section-head-sub">Agrega miembros. Cada usuario necesita usuario y contraseña para iniciar sesión.</div></div></div>
           <div class="section-body">
-
-            <!-- Lista -->
             <div class="user-list" id="userList"></div>
-
-            <!-- Formulario nuevo usuario -->
             <div class="add-user-form">
               <div class="add-user-grid">
-                <div class="form-group">
-                  <label class="form-label">Nombre completo *</label>
-                  <input type="text" id="newName" placeholder="Ej. Carlos Pérez" maxlength="40" />
-                </div>
-                <div class="form-group">
-                  <label class="form-label">Usuario *</label>
-                  <input type="text" id="newUsername" placeholder="Ej. carlos" maxlength="30"
-                    autocapitalize="none" spellcheck="false" />
-                </div>
-                <div class="form-group">
-                  <label class="form-label">Contraseña *</label>
-                  <div class="pass-field">
-                    <input type="password" id="newPassword" placeholder="Mínimo 4 caracteres" maxlength="50" />
-                    <button class="pass-eye" id="eyeBtn" type="button" tabindex="-1">👁</button>
-                  </div>
-                </div>
-                <div class="form-group">
-                  <label class="form-label">Rol</label>
-                  <select id="newRole">
-                    <option value="member">👤 Miembro</option>
-                    <option value="admin">🔐 Administrador</option>
-                  </select>
-                </div>
+                <div class="form-group"><label class="form-label">Nombre completo *</label><input type="text" id="newName" placeholder="Ej. Carlos Pérez" maxlength="40"/></div>
+                <div class="form-group"><label class="form-label">Usuario *</label><input type="text" id="newUsername" placeholder="Ej. carlos" maxlength="30" autocapitalize="none" spellcheck="false"/></div>
+                <div class="form-group"><label class="form-label">Contraseña *</label><div class="pass-field"><input type="password" id="newPassword" placeholder="Mínimo 4 caracteres" maxlength="50"/><button class="pass-eye" id="eyeBtn" type="button" tabindex="-1">👁</button></div></div>
+                <div class="form-group"><label class="form-label">Rol</label><select id="newRole"><option value="member">👤 Miembro</option><option value="admin">🔐 Administrador</option></select></div>
               </div>
-
-              <div>
-                <button class="btn btn-primary" id="addUserBtn">Agregar usuario</button>
-              </div>
-
-              <!-- Errores -->
-              <div id="formErrors" style="display:none">
-                <span class="field-error" style="display:block" id="formErrMsg"></span>
-              </div>
+              <div><button class="btn btn-primary" id="addUserBtn">Agregar usuario</button></div>
+              <div id="formErrors" style="display:none"><span class="field-error" style="display:block" id="formErrMsg"></span></div>
             </div>
-
           </div>
         </div>
-
+        <div class="setting-section">
+          <div class="section-head"><span class="section-head-icon">💾</span><div><div class="section-head-title">Datos del sistema</div><div class="section-head-sub">Exporta o importa todos los datos en formato JSON.</div></div></div>
+          <div class="section-body">
+            <div style="display:flex;gap:.65rem;flex-wrap:wrap">
+              <button class="btn btn-ghost" id="exportBtn">📤 Exportar JSON</button>
+              <button class="btn btn-ghost" id="importBtn">📥 Importar JSON</button>
+              <input type="file" id="importFile" accept=".json" style="display:none"/>
+            </div>
+            <p style="font-size:.78rem;color:var(--muted);line-height:1.6">La exportación incluye todos los proyectos, tareas y usuarios. Al importar, los datos actuales serán reemplazados.</p>
+          </div>
+        </div>
+        <div class="setting-section" style="border-color:rgba(240,91,106,.35)">
+          <div class="section-head" style="background:rgba(240,91,106,.05);border-color:rgba(240,91,106,.2)"><span class="section-head-icon">⚠️</span><div><div class="section-head-title" style="color:var(--danger)">Zona de peligro</div><div class="section-head-sub">Acciones irreversibles sobre los datos.</div></div></div>
+          <div class="section-body">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem">
+              <div><div style="font-size:.9rem;font-weight:500">Eliminar todos los datos</div><div style="font-size:.78rem;color:var(--muted);margin-top:.15rem">Borra proyectos, tareas y miembros. Los administradores se conservan.</div></div>
+              <button class="btn btn-danger" id="clearBtn">🗑️ Limpiar todo</button>
+            </div>
+          </div>
+        </div>
       </div>
+
+      <!-- ── VISTA MIEMBRO ── -->
+      <div id="viewMember" class="settings-layout" style="display:none">
+        <div class="setting-section">
+          <div class="section-head"><span class="section-head-icon">💾</span><div><div class="section-head-title">Mis datos</div><div class="section-head-sub">Exporta o importa proyectos y tareas. Los usuarios no se incluyen.</div></div></div>
+          <div class="section-body">
+            <div style="display:flex;gap:.65rem;flex-wrap:wrap">
+              <button class="btn btn-ghost" id="memberExportBtn">📤 Exportar mis datos</button>
+              <button class="btn btn-ghost" id="memberImportBtn">📥 Importar datos</button>
+              <input type="file" id="memberImportFile" accept=".json" style="display:none"/>
+            </div>
+            <p style="font-size:.78rem;color:var(--muted);line-height:1.6">La exportación incluye proyectos y tareas únicamente. Al importar, los proyectos y tareas actuales serán reemplazados.</p>
+          </div>
+        </div>
+      </div>
+
     </main>
   </div>
 </div>
 
-<!-- Confirm: eliminar usuario -->
+<!-- Modal: Eliminar usuario -->
 <div class="overlay" id="delUserOverlay">
   <div class="modal">
-    <div class="modal-header">
-      <h2 class="modal-title">¿Eliminar usuario?</h2>
-      <button class="modal-close" id="delUserClose">✕</button>
-    </div>
+    <div class="modal-header"><h2 class="modal-title">¿Eliminar usuario?</h2><button class="modal-close" id="delUserClose">✕</button></div>
     <div class="modal-body">
-      <p style="color:var(--muted);font-size:.9rem;line-height:1.6">
-        ¿Deseas eliminar a <strong id="delUserName" style="color:var(--text)"></strong>?
-        Las tareas que tenga asignadas quedarán sin asignar.
-      </p>
+      <p style="color:var(--muted);font-size:.9rem;line-height:1.6">¿Deseas eliminar a <strong id="delUserName" style="color:var(--text)"></strong>? Sus tareas quedarán sin asignar.</p>
+      <div id="delAdminPassSection" style="display:none;flex-direction:column;gap:.5rem;margin-top:.75rem">
+        <p style="color:var(--accent);font-size:.82rem">⚠️ Este usuario es administrador. Ingresa su contraseña para confirmar la eliminación.</p>
+        <div class="form-group"><label class="form-label">Contraseña del administrador</label><input type="password" id="delAdminPass" placeholder="••••••••"/></div>
+        <span style="color:var(--danger);font-size:.78rem;display:none" id="delAdminPassErr">Contraseña incorrecta. Inténtalo de nuevo.</span>
+      </div>
     </div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" id="delUserCancel">Cancelar</button>
-      <button class="btn btn-danger" id="delUserConfirm">Eliminar</button>
-    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" id="delUserCancel">Cancelar</button><button class="btn btn-danger" id="delUserConfirm">Eliminar</button></div>
+  </div>
+</div>
+
+<!-- Modal: Limpiar datos -->
+<div class="overlay" id="clearOverlay">
+  <div class="modal">
+    <div class="modal-header"><h2 class="modal-title">¿Eliminar todos los datos?</h2><button class="modal-close" id="clearClose">✕</button></div>
+    <div class="modal-body"><p style="color:var(--muted);font-size:.9rem;line-height:1.6">Esto eliminará permanentemente todos los proyectos, tareas y usuarios miembros. <strong style="color:var(--accent)">Los administradores serán conservados.</strong> <strong style="color:var(--danger)">No se puede deshacer.</strong></p></div>
+    <div class="modal-footer"><button class="btn btn-ghost" id="clearCancel">Cancelar</button><button class="btn btn-danger" id="clearConfirm">Sí, eliminar todo</button></div>
   </div>
 </div>
 
 <div id="toastWrap" class="toast-wrap"></div>
 <script src="shared.js"></script>
 <script>
-checkAuth();
-// Solo admins pueden entrar a Configuración
-if (!isAdmin()) { window.location.href = 'dashboard.html'; }
-seedData();
-initTheme();
-initNav();
+checkAuth(); seedData(); initTheme(); initNav();
 
 const AVATAR_COLORS = ['#5b6af0','#7ee8a2','#f0a05b','#f05b6a','#a05bf0','#5bc8f0'];
-function avatarColor(id) {
-  let s = 0; for (let i = 0; i < id.length; i++) s += id.charCodeAt(i);
-  return AVATAR_COLORS[s % AVATAR_COLORS.length];
+function avatarColor(id) { let s=0; for(let i=0;i<id.length;i++) s+=id.charCodeAt(i); return AVATAR_COLORS[s%AVATAR_COLORS.length]; }
+
+let delUserTargetId = null, passShown = false;
+
+// ── Mostrar vista según rol ──
+if (isAdmin()) {
+  document.getElementById('viewAdmin').style.display = '';
+  document.getElementById('settingsSub').textContent = 'Gestiona los perfiles de usuario.';
+  initAdminSettings();
+} else {
+  document.getElementById('viewMember').style.display = '';
+  document.getElementById('settingsSub').textContent = 'Exporta o importa tus proyectos y tareas.';
+  initMemberSettings();
 }
 
-let delUserTargetId = null;
+// ── ADMIN ─────────────────────────────────────
+function initAdminSettings() {
+  renderUsers();
 
-/* ── RENDER ──────────────────────────────────── */
+  // Toggle contraseña
+  document.getElementById('eyeBtn').addEventListener('click', () => {
+    passShown = !passShown;
+    document.getElementById('newPassword').type = passShown ? 'text' : 'password';
+    document.getElementById('eyeBtn').textContent = passShown ? '🙈' : '👁';
+  });
+
+  // Agregar usuario
+  document.getElementById('addUserBtn').addEventListener('click', addUser);
+  ['newName','newUsername','newPassword'].forEach(id => document.getElementById(id).addEventListener('keydown', e => { if (e.key==='Enter') addUser(); }));
+
+  // Export/Import
+  document.getElementById('exportBtn').addEventListener('click', () => {
+    const data = loadAll();
+    const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+    const url  = URL.createObjectURL(blob); const a=document.createElement('a');
+    a.href=url; a.download=`taskflow_backup_${new Date().toISOString().slice(0,10)}.json`; a.click(); URL.revokeObjectURL(url);
+    showToast('Datos exportados exitosamente.','success');
+  });
+  document.getElementById('importBtn').addEventListener('click', () => document.getElementById('importFile').click());
+  document.getElementById('importFile').addEventListener('change', e => {
+    const file=e.target.files[0]; if(!file)return;
+    const reader=new FileReader();
+    reader.onload=ev=>{try{const data=JSON.parse(ev.target.result);if(!Array.isArray(data.projects)||!Array.isArray(data.tasks)||!Array.isArray(data.users))throw new Error();saveProjects(data.projects);saveTasks(data.tasks);saveUsers(data.users);renderUsers();showToast('Datos importados exitosamente.','success');}catch{showToast('Error: el archivo JSON no es válido.','warning');}e.target.value='';};
+    reader.readAsText(file);
+  });
+
+  // Limpiar todo (conserva admins)
+  document.getElementById('clearBtn').addEventListener('click', () => document.getElementById('clearOverlay').classList.add('open'));
+  ['clearClose','clearCancel'].forEach(id => document.getElementById(id).addEventListener('click', () => document.getElementById('clearOverlay').classList.remove('open')));
+  document.getElementById('clearConfirm').addEventListener('click', () => {
+    const { users } = loadAll();
+    saveProjects([]); saveTasks([]); saveUsers(users.filter(u => u.role==='admin'));
+    document.getElementById('clearOverlay').classList.remove('open');
+    renderUsers(); showToast('Datos eliminados. Los administradores fueron conservados.','error');
+  });
+
+  // Delete user modal
+  ['delUserClose','delUserCancel'].forEach(id => document.getElementById(id).addEventListener('click', resetDelModal));
+  document.getElementById('delUserConfirm').addEventListener('click', confirmDelUser);
+}
+
 function renderUsers() {
   const { users } = loadAll();
   const list = document.getElementById('userList');
-
-  if (!users.length) {
-    list.innerHTML = `<div style="font-size:.84rem;color:var(--muted)">No hay usuarios registrados.</div>`;
-    return;
-  }
-
+  if (!users.length) { list.innerHTML = '<div style="font-size:.84rem;color:var(--muted)">No hay usuarios registrados.</div>'; return; }
   list.innerHTML = users.map(u => {
-    const isAdmin = u.role === 'admin';
-    const color   = avatarColor(u.id);
-    const initial = u.name.charAt(0).toUpperCase();
-    const uname   = u.username || u.name.toLowerCase().split(' ')[0];
-
-    return `
-    <div class="user-item">
-      <div class="user-avatar" style="background:${color}">${initial}</div>
+    const isA  = u.role === 'admin';
+    const color = avatarColor(u.id);
+    const uname = u.username || u.name.toLowerCase().split(' ')[0];
+    return `<div class="user-item">
+      <div class="user-avatar" style="background:${color}">${u.name.charAt(0).toUpperCase()}</div>
       <div class="user-info">
         <div class="user-name">${escHtml(u.name)}</div>
-        <div class="user-username">@${escHtml(uname)} · <span class="user-role-badge ${isAdmin ? 'role-admin' : 'role-member'}">${isAdmin ? '🔐 Admin' : '👤 Miembro'}</span></div>
+        <div class="user-username">@${escHtml(uname)} · <span class="user-role-badge ${isA?'role-admin':'role-member'}">${isA?'🔐 Admin':'👤 Miembro'}</span></div>
       </div>
-      ${isAdmin
-        ? `<span class="admin-lock" title="El administrador no puede eliminarse">🔒 Protegido</span>`
-        : `<button class="user-del" onclick="promptDelUser('${u.id}')" title="Eliminar usuario">✕</button>`
-      }
+      <button class="user-del" onclick="promptDelUser('${u.id}')" title="Eliminar">✕</button>
     </div>`;
   }).join('');
 }
 
-/* ── TOGGLE CONTRASEÑA ───────────────────────── */
-let passShown = false;
-document.getElementById('eyeBtn').addEventListener('click', () => {
-  passShown = !passShown;
-  document.getElementById('newPassword').type = passShown ? 'text' : 'password';
-  document.getElementById('eyeBtn').textContent = passShown ? '🙈' : '👁';
-});
-
-/* ── AGREGAR USUARIO ─────────────────────────── */
-document.getElementById('addUserBtn').addEventListener('click', addUser);
-['newName','newUsername','newPassword'].forEach(id => {
-  document.getElementById(id).addEventListener('keydown', e => {
-    if (e.key === 'Enter') addUser();
-  });
-});
-
-function showFormError(msg) {
-  const el = document.getElementById('formErrMsg');
-  el.textContent = msg;
-  document.getElementById('formErrors').style.display = 'block';
-}
-function clearFormError() {
-  document.getElementById('formErrors').style.display = 'none';
-}
+function showFE(msg) { document.getElementById('formErrMsg').textContent=msg; document.getElementById('formErrors').style.display='block'; }
+function clearFE()   { document.getElementById('formErrors').style.display='none'; }
 
 function addUser() {
   const name     = document.getElementById('newName').value.trim();
   const username = document.getElementById('newUsername').value.trim().toLowerCase();
   const password = document.getElementById('newPassword').value;
   const role     = document.getElementById('newRole').value;
-
-  // Validaciones
-  if (!name)     { showFormError('El nombre completo es obligatorio.'); document.getElementById('newName').focus(); return; }
-  if (!username) { showFormError('El nombre de usuario es obligatorio.'); document.getElementById('newUsername').focus(); return; }
-  if (!password) { showFormError('La contraseña es obligatoria.'); document.getElementById('newPassword').focus(); return; }
-  if (password.length < 4) { showFormError('La contraseña debe tener al menos 4 caracteres.'); document.getElementById('newPassword').focus(); return; }
-
-  // Verificar que el username no exista ya
+  if (!name)           { showFE('El nombre completo es obligatorio.'); document.getElementById('newName').focus(); return; }
+  if (!username)       { showFE('El nombre de usuario es obligatorio.'); document.getElementById('newUsername').focus(); return; }
+  if (!password)       { showFE('La contraseña es obligatoria.'); document.getElementById('newPassword').focus(); return; }
+  if (password.length < 4) { showFE('La contraseña debe tener al menos 4 caracteres.'); document.getElementById('newPassword').focus(); return; }
   const { users } = loadAll();
-  const exists = users.find(u => (u.username || '').toLowerCase() === username);
-  if (exists) { showFormError(`El usuario "@${username}" ya existe.`); document.getElementById('newUsername').focus(); return; }
-
-  clearFormError();
-
-  users.push({ id: genId('u'), name, username, password, role });
+  if (users.find(u => (u.username||'').toLowerCase()===username)) { showFE(`El usuario "@${username}" ya existe.`); document.getElementById('newUsername').focus(); return; }
+  clearFE();
+  users.push({ id:genId('u'), name, username, password, role });
   saveUsers(users);
-
-  // Limpiar formulario
-  document.getElementById('newName').value     = '';
-  document.getElementById('newUsername').value = '';
-  document.getElementById('newPassword').value = '';
-  document.getElementById('newRole').value     = 'member';
-
-  renderUsers();
-  showToast(`Usuario "@${username}" creado exitosamente.`, 'success');
+  document.getElementById('newName').value=document.getElementById('newUsername').value=document.getElementById('newPassword').value='';
+  document.getElementById('newRole').value='member';
+  renderUsers(); showToast(`Usuario "@${username}" creado exitosamente.`,'success');
 }
 
-/* ── ELIMINAR USUARIO ────────────────────────── */
 function promptDelUser(id) {
-  const { users } = loadAll();
-  const u = users.find(x => x.id === id);
-  if (!u || u.role === 'admin') { showToast('El administrador no puede eliminarse.', 'warning'); return; }
-
+  const { users } = loadAll(); const u = users.find(x => x.id===id); if (!u) return;
+  if (u.role==='admin' && users.filter(x=>x.role==='admin').length<=1) { showToast('No puedes eliminar al único administrador del sistema.','warning'); return; }
   delUserTargetId = id;
   document.getElementById('delUserName').textContent = u.name;
+  const ps = document.getElementById('delAdminPassSection');
+  if (u.role==='admin') { ps.style.display='flex'; ps.style.flexDirection='column'; } else { ps.style.display='none'; }
+  document.getElementById('delAdminPass').value='';
+  document.getElementById('delAdminPassErr').style.display='none';
   document.getElementById('delUserOverlay').classList.add('open');
 }
 
-['delUserClose','delUserCancel'].forEach(id => {
-  document.getElementById(id).addEventListener('click', () =>
-    document.getElementById('delUserOverlay').classList.remove('open')
-  );
-});
-
-document.getElementById('delUserConfirm').addEventListener('click', () => {
-  const { users, tasks, projects } = loadAll();
-  const target = users.find(u => u.id === delUserTargetId);
-  if (!target || target.role === 'admin') return;
-
-  const uid = delUserTargetId;
-
-  // Limpiar de tareas: assignedTo puede ser string o array
-  const cleanedTasks = tasks.map(t => {
-    const at = Array.isArray(t.assignedTo) ? t.assignedTo : (t.assignedTo ? [t.assignedTo] : []);
-    return { ...t, assignedTo: at.filter(id => id !== uid) };
-  });
-
-  // Limpiar de proyectos: assignedUsers y createdBy
-  const cleanedProjects = projects.map(p => ({
-    ...p,
-    assignedUsers: Array.isArray(p.assignedUsers) ? p.assignedUsers.filter(id => id !== uid) : [],
-    createdBy: p.createdBy === uid ? null : p.createdBy,
-  }));
-
-  saveUsers(users.filter(u => u.id !== uid));
-  saveTasks(cleanedTasks);
-  saveProjects(cleanedProjects);
-
-  // Bug 3: si el usuario eliminado tenía sesión activa en esta misma pestaña, cerrarla
-  const sess = getSession();
-  if (sess && sess.id === uid) { logout(); return; }
-
-  renderUsers();
+function resetDelModal() {
+  document.getElementById('delAdminPass').value='';
+  document.getElementById('delAdminPassSection').style.display='none';
+  document.getElementById('delAdminPassErr').style.display='none';
   document.getElementById('delUserOverlay').classList.remove('open');
-  showToast(`Usuario "${target.name}" eliminado y sus asignaciones limpiadas.`, 'error');
-});
+}
 
-/* ── INIT ───────────────────────────────────── */
-renderUsers();
+function confirmDelUser() {
+  const { users, tasks, projects } = loadAll();
+  const target = users.find(u => u.id===delUserTargetId); if (!target) return;
+  if (target.role==='admin') {
+    const entered = document.getElementById('delAdminPass').value;
+    if (entered !== target.password) { document.getElementById('delAdminPassErr').style.display='block'; document.getElementById('delAdminPass').focus(); return; }
+  }
+  const uid = delUserTargetId;
+  saveUsers(users.filter(u => u.id!==uid));
+  saveTasks(tasks.map(t => { const at=Array.isArray(t.assignedTo)?t.assignedTo:(t.assignedTo?[t.assignedTo]:[]); return {...t,assignedTo:at.filter(id=>id!==uid)}; }));
+  saveProjects(projects.map(p => ({...p, assignedUsers:Array.isArray(p.assignedUsers)?p.assignedUsers.filter(id=>id!==uid):[], createdBy:p.createdBy===uid?null:p.createdBy})));
+  const sess = getSession();
+  if (sess && sess.id===uid) { logout(); return; }
+  renderUsers(); resetDelModal(); showToast(`Usuario "${target.name}" eliminado.`,'error');
+}
+
+// ── MIEMBRO ────────────────────────────────────
+function initMemberSettings() {
+  document.getElementById('memberExportBtn').addEventListener('click', () => {
+    const { projects, tasks } = loadAll();
+    const blob = new Blob([JSON.stringify({projects,tasks},null,2)],{type:'application/json'});
+    const url  = URL.createObjectURL(blob); const a=document.createElement('a');
+    a.href=url; a.download=`taskflow_datos_${new Date().toISOString().slice(0,10)}.json`; a.click(); URL.revokeObjectURL(url);
+    showToast('Proyectos y tareas exportados.','success');
+  });
+  document.getElementById('memberImportBtn').addEventListener('click', () => document.getElementById('memberImportFile').click());
+  document.getElementById('memberImportFile').addEventListener('change', e => {
+    const file=e.target.files[0]; if(!file)return;
+    const reader=new FileReader();
+    reader.onload=ev=>{try{const data=JSON.parse(ev.target.result);if(!Array.isArray(data.projects)||!Array.isArray(data.tasks))throw new Error();saveProjects(data.projects);saveTasks(data.tasks);showToast('Proyectos y tareas importados correctamente.','success');}catch{showToast('Error: el archivo JSON no es válido.','warning');}e.target.value='';};
+    reader.readAsText(file);
+  });
+}
 </script>
 </body>
 </html>

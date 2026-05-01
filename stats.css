@@ -1,0 +1,64 @@
+/* ═══════════════════════════════════════
+   stats.css — Estilos de Estadísticas
+   ═══════════════════════════════════════ */
+
+.stats-layout {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;
+}
+@media (max-width: 900px) { .stats-layout { grid-template-columns: 1fr; } }
+
+/* Tarjeta de gráfica */
+.chart-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 1.4rem;
+}
+.chart-title {
+  font-family: 'Syne', sans-serif; font-weight: 700;
+  font-size: .95rem; margin-bottom: 1.25rem;
+}
+
+/* Gráfica donut */
+.donut-wrap {
+  display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap;
+}
+.donut-svg { flex-shrink: 0; }
+.donut-legend { display: flex; flex-direction: column; gap: .6rem; }
+.legend-row {
+  display: flex; align-items: center; gap: .55rem; font-size: .84rem;
+}
+.legend-color { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+.legend-val {
+  font-family: 'Syne', sans-serif; font-weight: 700;
+  font-size: .95rem; margin-left: auto; padding-left: .5rem;
+}
+
+/* Barras de prioridad */
+.priority-bars { display: flex; flex-direction: column; gap: .85rem; }
+.pbar-header {
+  display: flex; justify-content: space-between;
+  font-size: .82rem; margin-bottom: .3rem;
+}
+.pbar-track {
+  height: 8px; background: var(--surface2);
+  border-radius: 99px; overflow: hidden;
+}
+.pbar-fill {
+  height: 100%; border-radius: 99px; transition: width .8s ease;
+}
+
+/* Lista de progreso por proyecto */
+.proj-progress-list { display: flex; flex-direction: column; gap: .85rem; }
+.proj-prog-item {
+  background: var(--surface2); border-radius: var(--radius-sm);
+  padding: .9rem 1.1rem;
+}
+.proj-prog-header {
+  display: flex; align-items: center;
+  justify-content: space-between; margin-bottom: .55rem; gap: .5rem;
+}
+.proj-prog-name {
+  font-size: .9rem; font-weight: 600;
+  display: flex; align-items: center; gap: .45rem;
+}
+.proj-prog-stats { font-size: .75rem; color: var(--muted); flex-shrink: 0; }
+.proj-color-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }

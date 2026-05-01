@@ -1,0 +1,79 @@
+/* ═══════════════════════════════════════
+   settings.css — Estilos de Configuración
+   ═══════════════════════════════════════ */
+
+.settings-layout {
+  display: flex; flex-direction: column; gap: 1.5rem; max-width: 720px;
+}
+
+/* Sección */
+.setting-section {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); overflow: hidden;
+}
+.section-head {
+  padding: 1rem 1.4rem; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: .7rem;
+}
+.section-head-icon { font-size: 1.1rem; }
+.section-head-title {
+  font-family: 'Syne', sans-serif; font-weight: 700; font-size: .95rem;
+}
+.section-head-sub { font-size: .78rem; color: var(--muted); margin-top: .1rem; }
+.section-body {
+  padding: 1.2rem 1.4rem; display: flex; flex-direction: column; gap: 1rem;
+}
+
+/* Lista de usuarios */
+.user-list { display: flex; flex-direction: column; gap: .5rem; }
+.user-item {
+  display: flex; align-items: center; gap: .75rem;
+  padding: .7rem .9rem; background: var(--surface2);
+  border-radius: var(--radius-sm); border: 1px solid var(--border);
+}
+.user-avatar {
+  width: 34px; height: 34px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .9rem; font-weight: 700; color: #fff; flex-shrink: 0;
+}
+.user-info { flex: 1; min-width: 0; }
+.user-name { font-size: .9rem; font-weight: 500; }
+.user-username { font-size: .75rem; color: var(--muted); margin-top: .1rem; }
+.user-role-badge {
+  display: inline-flex; align-items: center; gap: .25rem;
+  font-size: .7rem; font-weight: 600; padding: .15rem .55rem;
+  border-radius: 99px;
+}
+.role-admin  { background: rgba(91,106,240,.15); color: var(--accent); }
+.role-member { background: rgba(107,114,144,.15); color: var(--muted); }
+
+.user-del {
+  width: 28px; height: 28px; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--muted); font-size: .85rem; transition: all var(--tr);
+}
+.user-del:hover { background: rgba(240,91,106,.15); color: var(--danger); }
+.admin-lock {
+  font-size: .75rem; color: var(--muted);
+  display: flex; align-items: center; gap: .3rem; flex-shrink: 0;
+}
+
+/* Formulario nuevo usuario */
+.add-user-form {
+  display: flex; flex-direction: column; gap: .65rem; padding-top: .25rem;
+}
+.add-user-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: .65rem;
+}
+@media (max-width: 560px) { .add-user-grid { grid-template-columns: 1fr; } }
+
+/* Ojo de contraseña */
+.pass-field { position: relative; }
+.pass-field input { padding-right: 2.4rem; }
+.pass-eye {
+  position: absolute; right: .7rem; top: 50%;
+  transform: translateY(-50%);
+  background: none; border: none; cursor: pointer;
+  color: var(--muted); font-size: .85rem; transition: color var(--tr);
+}
+.pass-eye:hover { color: var(--text); }

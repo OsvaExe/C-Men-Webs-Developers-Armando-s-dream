@@ -1,121 +1,13 @@
 <!DOCTYPE html>
 <html lang="es" data-theme="dark">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>TaskFlow — Kanban</title>
-  <link rel="stylesheet" href="styles.css" />
-  <style>
-    .proj-selector { display:flex; align-items:center; gap:.75rem; flex-wrap:wrap; margin-bottom:1.25rem; }
-    .proj-selector label { font-size:.85rem; color:var(--muted); font-weight:500; flex-shrink:0; }
-    .proj-selector select { max-width:280px; }
-
-    /* ── BARRA DE FILTROS (solo admin) ── */
-    .filter-panel {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: var(--radius); padding: 1rem 1.25rem;
-      margin-bottom: 1.25rem; display: flex; flex-direction: column; gap: .75rem;
-    }
-    .filter-panel-title {
-      font-family:'Syne',sans-serif; font-weight:700; font-size:.82rem;
-      color:var(--muted); text-transform:uppercase; letter-spacing:.05em;
-    }
-    .filter-rows { display: flex; flex-direction: column; gap: .6rem; }
-    .filter-row { display: flex; align-items: center; gap: .65rem; flex-wrap: wrap; }
-    .filter-row-label { font-size:.78rem; color:var(--muted); font-weight:500; width:80px; flex-shrink:0; }
-    .filter-chips { display: flex; gap: .4rem; flex-wrap: wrap; }
-    .fchip {
-      padding:.28rem .75rem; border-radius:99px;
-      border:1.5px solid var(--border); font-size:.75rem;
-      font-weight:500; color:var(--muted); background:var(--surface2);
-      cursor:pointer; transition:all var(--tr);
-    }
-    .fchip.active,.fchip:hover { border-color:var(--accent); color:var(--accent); background:rgba(91,106,240,.08); }
-    .fchip.active.high   { border-color:#f05b6a; color:#f05b6a; background:rgba(240,91,106,.08); }
-    .fchip.active.medium { border-color:#f0a05b; color:#f0a05b; background:rgba(240,160,91,.08); }
-    .fchip.active.low    { border-color:#7ee8a2; color:#7ee8a2; background:rgba(126,232,162,.08); }
-    .filter-row select { max-width:200px; padding:.35rem .75rem; font-size:.8rem; }
-    .filter-row input[type="date"] { max-width:155px; padding:.35rem .75rem; font-size:.8rem; }
-    .filter-reset { font-size:.78rem; color:var(--muted); cursor:pointer; margin-left:auto; padding:.28rem .65rem; border-radius:var(--radius-sm); border:1px solid var(--border); background:var(--surface2); transition:all var(--tr); }
-    .filter-reset:hover { border-color:var(--danger); color:var(--danger); }
-    .filter-count { font-size:.75rem; color:var(--muted); }
-
-    /* ── TABLERO ── */
-    .kanban-board { display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; align-items:start; }
-    @media (max-width:900px) { .kanban-board { grid-template-columns:1fr; } }
-
-    .kanban-col {
-      background:var(--surface); border:1px solid var(--border);
-      border-radius:var(--radius); display:flex; flex-direction:column;
-      min-height:400px; transition:border-color var(--tr), background var(--tr);
-    }
-    .kanban-col.drag-over { border-color:var(--accent); background:rgba(91,106,240,.05); }
-    .col-header {
-      padding:.9rem 1rem; border-bottom:1px solid var(--border);
-      display:flex; align-items:center; justify-content:space-between;
-      position:sticky; top:0; background:var(--surface);
-      border-radius:var(--radius) var(--radius) 0 0;
-    }
-    .col-title { font-family:'Syne',sans-serif; font-weight:700; font-size:.88rem; display:flex; align-items:center; gap:.5rem; }
-    .col-count { background:var(--surface2); color:var(--muted); font-size:.72rem; font-weight:600; padding:.15rem .5rem; border-radius:99px; border:1px solid var(--border); }
-    .col-body { padding:.75rem; display:flex; flex-direction:column; gap:.6rem; flex:1; }
-
-    /* ── TARJETA ── */
-    .task-card {
-      background:var(--surface2); border:1px solid var(--border);
-      border-radius:var(--radius-sm); padding:.9rem 1rem;
-      cursor:grab; transition:all var(--tr); animation:cardIn .25s ease both;
-    }
-    .task-card:active { cursor:grabbing; }
-    .task-card:hover { border-color:var(--accent); transform:translateY(-1px); box-shadow:0 4px 16px rgba(0,0,0,.3); }
-    .task-card.dragging { opacity:.4; }
-    @keyframes cardIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
-    .task-card[data-priority="high"]   { border-left:3px solid #f05b6a; }
-    .task-card[data-priority="medium"] { border-left:3px solid #f0a05b; }
-    .task-card[data-priority="low"]    { border-left:3px solid #7ee8a2; }
-
-    .task-card-header { display:flex; align-items:flex-start; justify-content:space-between; gap:.4rem; margin-bottom:.5rem; }
-    .task-name { font-size:.88rem; font-weight:500; line-height:1.35; flex:1; }
-    .task-menu-btn { font-size:.95rem; color:var(--muted); width:22px; height:22px; display:flex; align-items:center; justify-content:center; border-radius:4px; transition:all var(--tr); flex-shrink:0; }
-    .task-menu-btn:hover { background:var(--border); color:var(--text); }
-    .task-desc { font-size:.78rem; color:var(--muted); margin-bottom:.55rem; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
-    .task-meta { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:.35rem; }
-    .task-date { font-size:.73rem; color:var(--muted); }
-    .task-date.overdue { color:var(--danger); font-weight:600; }
-
-    /* Avatares de múltiples usuarios */
-    .task-avatars { display:flex; align-items:center; }
-    .t-avatar {
-      width:22px; height:22px; border-radius:50%; border:1.5px solid var(--surface2);
-      display:flex; align-items:center; justify-content:center;
-      font-size:.65rem; font-weight:700; color:#fff; flex-shrink:0;
-      margin-left:-5px; transition:transform var(--tr);
-    }
-    .t-avatar:first-child { margin-left:0; }
-    .task-avatars:hover .t-avatar { margin-left:1px; }
-    .t-avatar-more { background:var(--surface); color:var(--muted); border-color:var(--border); font-size:.6rem; }
-
-    /* Multi-select de usuarios en modal */
-    .user-checkboxes { display:flex; flex-direction:column; gap:.4rem; max-height:160px; overflow-y:auto; }
-    .user-checkbox-item {
-      display:flex; align-items:center; gap:.65rem;
-      padding:.5rem .75rem; background:var(--surface2);
-      border:1.5px solid var(--border); border-radius:var(--radius-sm);
-      cursor:pointer; transition:all var(--tr);
-    }
-    .user-checkbox-item:hover { border-color:var(--accent); }
-    .user-checkbox-item.selected { border-color:var(--accent); background:rgba(91,106,240,.08); }
-    .user-checkbox-item input[type="checkbox"] { width:auto; accent-color:var(--accent); cursor:pointer; }
-    .uc-avatar { width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:.72rem; font-weight:700; color:#fff; flex-shrink:0; }
-    .uc-name { font-size:.84rem; flex:1; }
-    .uc-role { font-size:.7rem; color:var(--muted); }
-
-    .no-project { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:4rem 2rem; text-align:center; gap:.75rem; color:var(--muted); }
-  </style>
+  <link rel="stylesheet" href="styles.css"/>
+  <link rel="stylesheet" href="kanban.css"/>
 </head>
 <body>
 <button class="hamburger" id="hamburger">☰</button>
-
 <div class="app">
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-logo"><span class="logo-dot"></span>TaskFlow</div>
@@ -130,263 +22,125 @@
     </nav>
     <div class="sidebar-bottom">
       <div id="sidebarUser"></div>
-      <div class="sb-bottom-row">
-        <span class="sidebar-version">v1.0</span>
-        <button class="theme-btn" id="themeBtn">🌙</button>
-      </div>
+      <div class="sb-bottom-row"><span class="sidebar-version">v1.0</span><button class="theme-btn" id="themeBtn">🌙</button></div>
     </div>
   </aside>
-
   <div class="content">
     <header class="page-header">
-      <div>
-        <h1 class="page-title">Tablero Kanban</h1>
-        <p class="page-sub" id="boardSub">Selecciona un proyecto para comenzar.</p>
-      </div>
-      <div class="page-actions">
-        <button class="btn btn-primary" id="newTaskBtn">＋ Nueva Tarea</button>
-      </div>
+      <div><h1 class="page-title">Tablero Kanban</h1><p class="page-sub" id="boardSub">Selecciona un proyecto para comenzar.</p></div>
+      <div class="page-actions"><button class="btn btn-primary" id="newTaskBtn">＋ Nueva Tarea</button></div>
     </header>
-
     <main class="page-main">
-      <!-- Selector de proyecto -->
-      <div class="proj-selector">
-        <label>Proyecto:</label>
-        <select id="projSelect"></select>
-      </div>
-
-      <!-- Panel de filtros (solo admin) -->
+      <div class="proj-selector"><label>Proyecto:</label><select id="projSelect"></select></div>
+      <!-- Filtros admin -->
       <div class="filter-panel" id="filterPanel" style="display:none">
         <div style="display:flex;align-items:center;justify-content:space-between">
           <div class="filter-panel-title">🔍 Filtros</div>
-          <div style="display:flex;align-items:center;gap:.75rem">
-            <span class="filter-count" id="filterCount"></span>
-            <button class="filter-reset" id="resetFilters">Limpiar filtros</button>
-          </div>
+          <div style="display:flex;align-items:center;gap:.75rem"><span class="filter-count" id="filterCount"></span><button class="filter-reset" id="resetFilters">Limpiar filtros</button></div>
         </div>
         <div class="filter-rows">
-          <!-- Estado -->
-          <div class="filter-row">
-            <div class="filter-row-label">Estado</div>
+          <div class="filter-row"><div class="filter-row-label">Estado</div>
             <div class="filter-chips" id="statusChips">
               <button class="fchip active" data-status="all">Todos</button>
               <button class="fchip" data-status="pending">Pendiente</button>
               <button class="fchip" data-status="in_progress">En Progreso</button>
               <button class="fchip" data-status="done">Terminado</button>
-            </div>
-          </div>
-          <!-- Prioridad -->
-          <div class="filter-row">
-            <div class="filter-row-label">Prioridad</div>
+            </div></div>
+          <div class="filter-row"><div class="filter-row-label">Prioridad</div>
             <div class="filter-chips" id="prioChips">
               <button class="fchip active" data-prio="all">Todas</button>
               <button class="fchip high" data-prio="high">🔴 Alta</button>
               <button class="fchip medium" data-prio="medium">🟡 Media</button>
               <button class="fchip low" data-prio="low">🟢 Baja</button>
-            </div>
-          </div>
-          <!-- Usuario asignado -->
-          <div class="filter-row">
-            <div class="filter-row-label">Usuario</div>
-            <select id="filterUser" style="max-width:200px;padding:.35rem .75rem;font-size:.8rem"></select>
-          </div>
-          <!-- Rango de fechas -->
-          <div class="filter-row">
-            <div class="filter-row-label">Fecha límite</div>
-            <input type="date" id="filterDateFrom" title="Desde" />
-            <span style="font-size:.78rem;color:var(--muted)">—</span>
-            <input type="date" id="filterDateTo" title="Hasta" />
-          </div>
+            </div></div>
+          <div class="filter-row"><div class="filter-row-label">Usuario</div><select id="filterUser" style="max-width:200px;padding:.35rem .75rem;font-size:.8rem"></select></div>
+          <div class="filter-row"><div class="filter-row-label">Fecha</div>
+            <input type="date" id="filterDateFrom"/><span style="font-size:.78rem;color:var(--muted)">—</span><input type="date" id="filterDateTo"/></div>
         </div>
       </div>
-
-      <!-- Tablero -->
       <div id="boardWrap"></div>
     </main>
   </div>
 </div>
 
-<!-- Modal: Crear / Editar Tarea -->
+<!-- Modal: Crear/Editar Tarea -->
 <div class="overlay" id="taskOverlay">
   <div class="modal">
-    <div class="modal-header">
-      <h2 class="modal-title" id="taskModalTitle">Nueva Tarea</h2>
-      <button class="modal-close" id="taskModalClose">✕</button>
-    </div>
+    <div class="modal-header"><h2 class="modal-title" id="taskModalTitle">Nueva Tarea</h2><button class="modal-close" id="taskModalClose">✕</button></div>
     <div class="modal-body">
-      <input type="hidden" id="taskEditId" />
-      <div class="form-group">
-        <label class="form-label">Nombre *</label>
-        <input type="text" id="taskName" placeholder="Ej. Diseñar pantalla de login" maxlength="80" />
-        <span class="field-error" id="taskNameErr">El nombre es obligatorio.</span>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Descripción</label>
-        <textarea id="taskDesc" placeholder="Detalla lo que hay que hacer…"></textarea>
-      </div>
+      <input type="hidden" id="taskEditId"/>
+      <div class="form-group"><label class="form-label">Nombre *</label><input type="text" id="taskName" placeholder="Ej. Diseñar pantalla de login" maxlength="80"/><span class="field-error" id="taskNameErr">El nombre es obligatorio.</span></div>
+      <div class="form-group"><label class="form-label">Descripción</label><textarea id="taskDesc" placeholder="Detalla lo que hay que hacer…"></textarea></div>
       <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">Prioridad</label>
-          <select id="taskPriority">
-            <option value="high">🔴 Alta</option>
-            <option value="medium" selected>🟡 Media</option>
-            <option value="low">🟢 Baja</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Estado</label>
-          <select id="taskStatus">
-            <option value="pending">Pendiente</option>
-            <option value="in_progress">En Progreso</option>
-            <option value="done">Terminado</option>
-          </select>
-        </div>
+        <div class="form-group"><label class="form-label">Prioridad</label><select id="taskPriority"><option value="high">🔴 Alta</option><option value="medium" selected>🟡 Media</option><option value="low">🟢 Baja</option></select></div>
+        <div class="form-group"><label class="form-label">Estado</label><select id="taskStatus"><option value="pending">Pendiente</option><option value="in_progress">En Progreso</option><option value="done">Terminado</option></select></div>
       </div>
-      <div class="form-group">
-        <label class="form-label">Fecha límite</label>
-        <input type="date" id="taskDate" />
-      </div>
-      <!-- H40: Multi-select usuarios -->
-      <div class="form-group">
-        <label class="form-label">Asignar a <span style="color:var(--muted);font-weight:400;text-transform:none;font-size:.75rem">(puedes seleccionar varios)</span></label>
-        <div class="user-checkboxes" id="userCheckboxes"></div>
-      </div>
+      <div class="form-group"><label class="form-label">Fecha límite</label><input type="date" id="taskDate"/></div>
+      <div class="form-group"><label class="form-label">Asignar a <span style="color:var(--muted);font-weight:400;text-transform:none;font-size:.75rem">(puedes seleccionar varios)</span></label>
+        <div class="user-checkboxes" id="userCheckboxes"></div></div>
     </div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" id="taskCancel">Cancelar</button>
-      <button class="btn btn-primary" id="taskSave">Guardar Tarea</button>
-    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" id="taskCancel">Cancelar</button><button class="btn btn-primary" id="taskSave">Guardar Tarea</button></div>
   </div>
 </div>
 
-<!-- Modal: Confirmar eliminar tarea -->
+<!-- Modal: Confirmar Eliminar Tarea -->
 <div class="overlay" id="delTaskOverlay">
   <div class="modal">
-    <div class="modal-header">
-      <h2 class="modal-title">¿Eliminar tarea?</h2>
-      <button class="modal-close" id="delTaskClose">✕</button>
-    </div>
-    <div class="modal-body">
-      <p style="color:var(--muted);font-size:.9rem;line-height:1.6">
-        ¿Estás seguro de que deseas eliminar la tarea
-        <strong id="delTaskName" style="color:var(--text)"></strong>?
-        Esta acción no se puede deshacer.
-      </p>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" id="delTaskCancel">Cancelar</button>
-      <button class="btn btn-danger" id="delTaskConfirm">Eliminar</button>
-    </div>
+    <div class="modal-header"><h2 class="modal-title">¿Eliminar tarea?</h2><button class="modal-close" id="delTaskClose">✕</button></div>
+    <div class="modal-body"><p style="color:var(--muted);font-size:.9rem;line-height:1.6">¿Estás seguro de que deseas eliminar la tarea <strong id="delTaskName" style="color:var(--text)"></strong>? Esta acción no se puede deshacer.</p></div>
+    <div class="modal-footer"><button class="btn btn-ghost" id="delTaskCancel">Cancelar</button><button class="btn btn-danger" id="delTaskConfirm">Eliminar</button></div>
   </div>
 </div>
 
 <div id="toastWrap" class="toast-wrap"></div>
 <script src="shared.js"></script>
 <script>
-/* ── STATE ──────────────────────────────────── */
-let currentProjId   = '';
-let dragTaskId      = '';
-let delTaskTargetId = '';
+checkAuth(); seedData(); initTheme(); initNav();
 
-// Filtros (H41)
+let currentProjId = '', dragTaskId = '', delTaskTargetId = '';
 const filters = { status:'all', priority:'all', userId:'', dateFrom:'', dateTo:'' };
-
 const COLS = [
   { status:'pending',     label:'Pendiente',  icon:'🕐' },
   { status:'in_progress', label:'En Progreso', icon:'⚡' },
   { status:'done',        label:'Terminado',   icon:'✅' },
 ];
 
-const AVC = ['#5b6af0','#7ee8a2','#f0a05b','#f05b6a','#a05bf0','#5bc8f0'];
-function avColor(id) { let s=0; for(let i=0;i<id.length;i++) s+=id.charCodeAt(i); return AVC[s%AVC.length]; }
-
-/* ── INIT ───────────────────────────────────── */
-checkAuth();
-seedData();
-initTheme();
-initNav();
-
 const qp = new URLSearchParams(window.location.search).get('p');
-const qt = new URLSearchParams(window.location.search).get('t'); // tarea a destacar
+const qt = new URLSearchParams(window.location.search).get('t');
 buildProjSelect(qp);
-initFilters();
+if (isAdmin()) initFilters();
 renderBoard();
+if (qt) setTimeout(() => highlightTask(qt), 350);
 
-// Si viene con ?t= destacar esa tarea
-if (qt) {
-  setTimeout(() => highlightTask(qt), 300);
-}
-
-function highlightTask(taskId) {
-  const el = document.querySelector(`[data-task-id="${taskId}"]`);
-  if (!el) return;
-  el.classList.add('highlighted');
-  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  // Quitar clase después de la animación
-  setTimeout(() => el.classList.remove('highlighted'), 5200);
-}
-
-/* ── SELECTOR DE PROYECTO ───────────────────── */
 function buildProjSelect(preselect) {
   const { projects, tasks } = loadAll();
-  const myProjects = getVisibleProjects(projects, tasks);
+  const myP = getVisibleProjects(projects, tasks);
   const sel = document.getElementById('projSelect');
   sel.innerHTML = '<option value="">— Selecciona un proyecto —</option>' +
-    myProjects.map(p =>
-      `<option value="${p.id}"${p.id === preselect ? ' selected' : ''}>${escHtml(p.name)}</option>`
-    ).join('');
+    myP.map(p => `<option value="${p.id}"${p.id === preselect ? ' selected' : ''}>${escHtml(p.name)}</option>`).join('');
   currentProjId = preselect || '';
   sel.addEventListener('change', () => { currentProjId = sel.value; renderBoard(); });
 }
 
-/* ── FILTROS (H41) ──────────────────────────── */
 function initFilters() {
-  if (!isAdmin()) return;
-
-  // Mostrar panel
   document.getElementById('filterPanel').style.display = 'block';
-
-  // Poblar selector de usuarios
   const { users } = loadAll();
   const fuSel = document.getElementById('filterUser');
-  fuSel.innerHTML = '<option value="">Todos los usuarios</option>' +
-    users.map(u => `<option value="${u.id}">${escHtml(u.name)}</option>`).join('');
-
-  // Chips de estado
+  fuSel.innerHTML = '<option value="">Todos los usuarios</option>' + users.map(u => `<option value="${u.id}">${escHtml(u.name)}</option>`).join('');
   document.querySelectorAll('#statusChips .fchip').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('#statusChips .fchip').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      filters.status = btn.dataset.status;
-      renderBoard();
-    });
+    btn.addEventListener('click', () => { document.querySelectorAll('#statusChips .fchip').forEach(b => b.classList.remove('active')); btn.classList.add('active'); filters.status = btn.dataset.status; renderBoard(); });
   });
-
-  // Chips de prioridad
   document.querySelectorAll('#prioChips .fchip').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('#prioChips .fchip').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      filters.priority = btn.dataset.prio;
-      renderBoard();
-    });
+    btn.addEventListener('click', () => { document.querySelectorAll('#prioChips .fchip').forEach(b => b.classList.remove('active')); btn.classList.add('active'); filters.priority = btn.dataset.prio; renderBoard(); });
   });
-
-  // Usuario
   fuSel.addEventListener('change', () => { filters.userId = fuSel.value; renderBoard(); });
-
-  // Fechas
   document.getElementById('filterDateFrom').addEventListener('change', e => { filters.dateFrom = e.target.value; renderBoard(); });
   document.getElementById('filterDateTo').addEventListener('change',   e => { filters.dateTo   = e.target.value; renderBoard(); });
-
-  // Reset
   document.getElementById('resetFilters').addEventListener('click', () => {
     filters.status='all'; filters.priority='all'; filters.userId=''; filters.dateFrom=''; filters.dateTo='';
-    document.querySelectorAll('#statusChips .fchip').forEach((b,i) => b.classList.toggle('active', i===0));
-    document.querySelectorAll('#prioChips .fchip').forEach((b,i)  => b.classList.toggle('active', i===0));
-    document.getElementById('filterUser').value     = '';
-    document.getElementById('filterDateFrom').value = '';
-    document.getElementById('filterDateTo').value   = '';
+    document.querySelectorAll('#statusChips .fchip').forEach((b,i) => b.classList.toggle('active',i===0));
+    document.querySelectorAll('#prioChips .fchip').forEach((b,i)  => b.classList.toggle('active',i===0));
+    document.getElementById('filterUser').value=''; document.getElementById('filterDateFrom').value=''; document.getElementById('filterDateTo').value='';
     renderBoard();
   });
 }
@@ -395,105 +149,70 @@ function applyFilters(tasks) {
   return tasks.filter(t => {
     if (filters.status   !== 'all' && t.status   !== filters.status)   return false;
     if (filters.priority !== 'all' && t.priority !== filters.priority) return false;
-    if (filters.userId) {
-      const at = Array.isArray(t.assignedTo) ? t.assignedTo : [];
-      if (!at.includes(filters.userId)) return false;
-    }
+    if (filters.userId) { const at = Array.isArray(t.assignedTo) ? t.assignedTo : []; if (!at.includes(filters.userId)) return false; }
     if (filters.dateFrom && t.dueDate && t.dueDate < filters.dateFrom) return false;
     if (filters.dateTo   && t.dueDate && t.dueDate > filters.dateTo)   return false;
     return true;
   });
 }
 
-function updateFilterCount(total, filtered) {
-  const el = document.getElementById('filterCount');
-  if (!el) return;
-  const active = filters.status!=='all'||filters.priority!=='all'||filters.userId||filters.dateFrom||filters.dateTo;
-  el.textContent = active ? `${filtered} de ${total} tarea${total!==1?'s':''}` : '';
-}
-
-/* ── RENDER TABLERO ─────────────────────────── */
 function renderBoard() {
   const wrap = document.getElementById('boardWrap');
-
   if (!currentProjId) {
-    wrap.innerHTML = `
-      <div class="no-project">
-        <div style="font-size:3rem;opacity:.3">📋</div>
-        <div style="font-family:'Syne',sans-serif;font-size:1.05rem;color:var(--text);font-weight:700">Selecciona un proyecto</div>
-        <p style="font-size:.86rem;max-width:260px;line-height:1.5">Elige un proyecto del menú de arriba para ver su tablero Kanban.</p>
-      </div>`;
+    wrap.innerHTML = `<div class="no-project"><div style="font-size:3rem;opacity:.3">📋</div>
+      <div style="font-family:'Syne',sans-serif;font-size:1.05rem;color:var(--text);font-weight:700">Selecciona un proyecto</div>
+      <p style="font-size:.86rem;max-width:260px;line-height:1.5">Elige un proyecto del menú de arriba para ver su tablero Kanban.</p></div>`;
     return;
   }
-
   const { tasks, users, projects } = loadAll();
   const proj = projects.find(p => p.id === currentProjId);
-
-  // Tareas del proyecto filtradas por rol
-  let projTasks = tasks
-    .filter(t => t.projectId === currentProjId)
-    .filter(t => {
-      if (isAdmin()) return true;
-      const at = Array.isArray(t.assignedTo) ? t.assignedTo : [];
-      return at.includes(getMyId());
-    });
-
   document.getElementById('boardSub').textContent = proj ? `Proyecto: ${proj.name}` : '';
-  document.getElementById('newTaskBtn').style.display = isAdmin() ? '' : 'none';
 
-  // Aplicar filtros admin (H41)
+  // Todos pueden crear tareas en proyectos donde están asignados
+  document.getElementById('newTaskBtn').style.display = '';
+
+  let projTasks = tasks.filter(t => t.projectId === currentProjId);
+  // Miembros solo ven sus tareas
+  if (!isAdmin()) {
+    const myId = getMyId();
+    projTasks = projTasks.filter(t => {
+      const at = Array.isArray(t.assignedTo) ? t.assignedTo : [];
+      return at.includes(myId);
+    });
+  }
+
   const filtered = isAdmin() ? applyFilters(projTasks) : projTasks;
-  updateFilterCount(projTasks.length, filtered.length);
+  const fc = document.getElementById('filterCount');
+  if (fc) { const active = filters.status!=='all'||filters.priority!=='all'||filters.userId||filters.dateFrom||filters.dateTo; fc.textContent = active ? `${filtered.length} de ${projTasks.length} tareas` : ''; }
 
-  // H17: Ordenar por fecha límite ascendente dentro de cada columna
   const sortByDate = arr => [...arr].sort((a, b) => {
     if (!a.dueDate && !b.dueDate) return 0;
-    if (!a.dueDate) return 1;
-    if (!b.dueDate) return -1;
+    if (!a.dueDate) return 1; if (!b.dueDate) return -1;
     return a.dueDate.localeCompare(b.dueDate);
   });
 
   wrap.innerHTML = `<div class="kanban-board">${COLS.map(col => {
-    // Cuando hay filtro de estado activo, mostrar solo esa columna si coincide
     const colTasks = sortByDate(filtered.filter(t => t.status === col.status));
-    return `
-    <div class="kanban-col" data-status="${col.status}"
-         ondragover="onDragOver(event,this)"
-         ondragleave="onDragLeave(this)"
-         ondrop="onDrop(event,'${col.status}')">
-      <div class="col-header">
-        <div class="col-title">${col.icon} ${col.label}</div>
-        <span class="col-count">${colTasks.length}</span>
-      </div>
+    return `<div class="kanban-col" data-status="${col.status}"
+         ondragover="onDragOver(event,this)" ondragleave="onDragLeave(this)" ondrop="onDrop(event,'${col.status}')">
+      <div class="col-header"><div class="col-title">${col.icon} ${col.label}</div><span class="col-count">${colTasks.length}</span></div>
       <div class="col-body" id="col-${col.status}">
-        ${colTasks.length ? colTasks.map(t => taskCard(t, users)).join('') : `<div style="flex:1"></div>`}
+        ${colTasks.length ? colTasks.map(t => taskCard(t, users)).join('') : '<div style="flex:1"></div>'}
       </div>
     </div>`;
   }).join('')}</div>`;
 }
 
-/* ── TARJETA ─────────────────────────────────── */
 function taskCard(t, users) {
-  const assignedTo = Array.isArray(t.assignedTo) ? t.assignedTo : (t.assignedTo ? [t.assignedTo] : []);
-  const assignedUsers = assignedTo.map(id => users.find(u => u.id === id)).filter(Boolean);
-  const today   = new Date().toISOString().slice(0, 10);
+  const at = Array.isArray(t.assignedTo) ? t.assignedTo : (t.assignedTo ? [t.assignedTo] : []);
+  const aUsers = at.map(id => users.find(u => u.id === id)).filter(Boolean);
+  const today = new Date().toISOString().slice(0, 10);
   const overdue = t.dueDate && t.dueDate < today && t.status !== 'done';
-  const prioLabel = { high:'Alta', medium:'Media', low:'Baja' };
-
-  // Avatares: mostrar hasta 3, luego "+N"
-  const maxAv = 3;
-  const shown = assignedUsers.slice(0, maxAv);
-  const extra = assignedUsers.length - maxAv;
-  const avatarsHtml = assignedUsers.length
-    ? `<div class="task-avatars" title="${assignedUsers.map(u=>u.name).join(', ')}">
-        ${shown.map(u => `<div class="t-avatar" style="background:${avColor(u.id)}">${u.name.charAt(0)}</div>`).join('')}
-        ${extra > 0 ? `<div class="t-avatar t-avatar-more">+${extra}</div>` : ''}
-      </div>`
-    : '';
-
-  return `
-  <div class="task-card" draggable="true" data-task-id="${t.id}" data-priority="${t.priority}"
-       ondragstart="onDragStart(event,'${t.id}')">
+  const pl = { high:'Alta', medium:'Media', low:'Baja' };
+  const maxAv = 3; const shown = aUsers.slice(0, maxAv); const extra = aUsers.length - maxAv;
+  const avatarsHtml = aUsers.length
+    ? `<div class="task-avatars" title="${aUsers.map(u=>u.name).join(', ')}">${shown.map(u=>`<div class="t-avatar" style="background:${avColor(u.id)}">${u.name.charAt(0)}</div>`).join('')}${extra>0?`<div class="t-avatar t-avatar-more">+${extra}</div>`:''}</div>` : '';
+  return `<div class="task-card" draggable="true" data-task-id="${t.id}" data-priority="${t.priority}" ondragstart="onDragStart(event,'${t.id}')">
     <div class="task-card-header">
       <div class="task-name">${escHtml(t.name)}</div>
       <div class="dd-wrap">
@@ -506,24 +225,24 @@ function taskCard(t, users) {
     </div>
     ${t.desc ? `<div class="task-desc">${escHtml(t.desc)}</div>` : ''}
     <div class="task-meta">
-      <span class="badge badge-${t.priority}">${prioLabel[t.priority]}</span>
+      <span class="badge badge-${t.priority}">${pl[t.priority]}</span>
       <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
         ${avatarsHtml}
-        ${t.dueDate ? `<span class="task-date${overdue ? ' overdue' : ''}">📅 ${formatDate(t.dueDate)}${overdue ? ' ⚠️' : ''}</span>` : ''}
+        ${t.dueDate ? `<span class="task-date${overdue?' overdue':''}">📅 ${formatDate(t.dueDate)}${overdue?' ⚠️':''}</span>` : ''}
       </div>
     </div>
   </div>`;
 }
 
-/* ── DRAG & DROP ────────────────────────────── */
-function onDragStart(e, id) {
-  dragTaskId = id;
-  e.dataTransfer.effectAllowed = 'move';
-  setTimeout(() => {
-    const el = document.querySelector(`[data-task-id="${id}"]`);
-    if (el) el.classList.add('dragging');
-  }, 0);
+function highlightTask(taskId) {
+  const el = document.querySelector(`[data-task-id="${taskId}"]`);
+  if (!el) return;
+  el.classList.add('highlighted');
+  el.scrollIntoView({ behavior:'smooth', block:'center' });
+  setTimeout(() => el.classList.remove('highlighted'), 5200);
 }
+
+function onDragStart(e, id) { dragTaskId = id; e.dataTransfer.effectAllowed = 'move'; setTimeout(() => { const el = document.querySelector(`[data-task-id="${id}"]`); if (el) el.classList.add('dragging'); }, 0); }
 function onDragOver(e, col) { e.preventDefault(); col.classList.add('drag-over'); }
 function onDragLeave(col)   { col.classList.remove('drag-over'); }
 function onDrop(e, newStatus) {
@@ -532,46 +251,31 @@ function onDrop(e, newStatus) {
   if (!dragTaskId) return;
   const { tasks } = loadAll();
   const idx = tasks.findIndex(t => t.id === dragTaskId);
-  if (idx !== -1 && tasks[idx].status !== newStatus) {
-    tasks[idx].status = newStatus;
-    saveTasks(tasks);
-    showToast(`Tarea movida a "${COLS.find(c => c.status === newStatus)?.label}".`, 'info');
-    renderBoard();
-  }
+  if (idx !== -1 && tasks[idx].status !== newStatus) { tasks[idx].status = newStatus; saveTasks(tasks); showToast(`Tarea movida a "${COLS.find(c=>c.status===newStatus)?.label}".`,'info'); renderBoard(); }
   dragTaskId = '';
 }
 
-/* ── MODAL TAREA ────────────────────────────── */
 function openTaskModal(editId, defaultStatus) {
   const { tasks, users } = loadAll();
   const t = editId ? tasks.find(x => x.id === editId) : null;
-  const tAssigned = t ? (Array.isArray(t.assignedTo) ? t.assignedTo : (t.assignedTo ? [t.assignedTo] : [])) : [];
-
+  const tA = t ? (Array.isArray(t.assignedTo) ? t.assignedTo : (t.assignedTo ? [t.assignedTo] : [])) : [];
   document.getElementById('taskModalTitle').textContent = t ? 'Editar Tarea' : 'Nueva Tarea';
   document.getElementById('taskEditId').value   = t ? t.id : '';
   document.getElementById('taskName').value     = t ? t.name : '';
-  document.getElementById('taskDesc').value     = t ? (t.desc || '') : '';
+  document.getElementById('taskDesc').value     = t ? t.desc || '' : '';
   document.getElementById('taskPriority').value = t ? t.priority : 'medium';
   document.getElementById('taskStatus').value   = t ? t.status : (defaultStatus || 'pending');
-  document.getElementById('taskDate').value     = t ? (t.dueDate || '') : '';
+  document.getElementById('taskDate').value     = t ? t.dueDate || '' : '';
   document.getElementById('taskNameErr').style.display = 'none';
-
-  // H40: Renderizar checkboxes de usuarios
-  const box = document.getElementById('userCheckboxes');
-  box.innerHTML = users.map(u => {
-    const checked = tAssigned.includes(u.id);
-    const color   = avColor(u.id);
-    const initial = u.name.charAt(0).toUpperCase();
-    return `
-    <label class="user-checkbox-item${checked ? ' selected' : ''}">
-      <input type="checkbox" value="${u.id}" ${checked ? 'checked' : ''}
-             onchange="this.closest('.user-checkbox-item').classList.toggle('selected',this.checked)" />
-      <div class="uc-avatar" style="background:${color}">${initial}</div>
+  document.getElementById('userCheckboxes').innerHTML = users.map(u => {
+    const ch = tA.includes(u.id);
+    return `<label class="user-checkbox-item${ch?' selected':''}">
+      <input type="checkbox" value="${u.id}" ${ch?'checked':''} onchange="this.closest('.user-checkbox-item').classList.toggle('selected',this.checked)"/>
+      <div class="uc-avatar" style="background:${avColor(u.id)}">${u.name.charAt(0).toUpperCase()}</div>
       <div class="uc-name">${escHtml(u.name)}</div>
-      <div class="uc-role">${u.role === 'admin' ? '🔐' : '👤'}</div>
+      <div class="uc-role">${u.role==='admin'?'🔐':'👤'}</div>
     </label>`;
   }).join('');
-
   document.getElementById('taskOverlay').classList.add('open');
   setTimeout(() => document.getElementById('taskName').focus(), 80);
 }
@@ -580,93 +284,41 @@ document.getElementById('newTaskBtn').addEventListener('click', () => {
   if (!currentProjId) { showToast('Selecciona un proyecto primero.', 'warning'); return; }
   openTaskModal(null, 'pending');
 });
+['taskModalClose','taskCancel'].forEach(id => document.getElementById(id).addEventListener('click', () => document.getElementById('taskOverlay').classList.remove('open')));
+document.getElementById('taskOverlay').addEventListener('click', e => { if (e.target.id === 'taskOverlay') document.getElementById('taskOverlay').classList.remove('open'); });
 
-['taskModalClose', 'taskCancel'].forEach(id => {
-  document.getElementById(id).addEventListener('click', () =>
-    document.getElementById('taskOverlay').classList.remove('open')
-  );
-});
-document.getElementById('taskOverlay').addEventListener('click', e => {
-  if (e.target.id === 'taskOverlay') document.getElementById('taskOverlay').classList.remove('open');
-});
-
-/* ── GUARDAR TAREA ──────────────────────────── */
 document.getElementById('taskSave').addEventListener('click', () => {
-  const name     = document.getElementById('taskName').value.trim();
+  const name = document.getElementById('taskName').value.trim();
+  if (!name) { document.getElementById('taskNameErr').style.display='block'; document.getElementById('taskName').focus(); return; }
+  document.getElementById('taskNameErr').style.display = 'none';
   const desc     = document.getElementById('taskDesc').value.trim();
   const priority = document.getElementById('taskPriority').value;
   const status   = document.getElementById('taskStatus').value;
   const dueDate  = document.getElementById('taskDate').value;
   const editId   = document.getElementById('taskEditId').value;
-
-  // H40: Recoger todos los usuarios seleccionados
-  const assignedTo = [...document.querySelectorAll('#userCheckboxes input[type="checkbox"]:checked')]
-    .map(cb => cb.value);
-
-  if (!name) {
-    document.getElementById('taskNameErr').style.display = 'block';
-    document.getElementById('taskName').focus();
-    return;
-  }
-  document.getElementById('taskNameErr').style.display = 'none';
-
+  if (dueDate && isNaN(new Date(dueDate).getTime())) { showToast('La fecha límite no es válida.', 'warning'); return; }
+  const assignedTo = [...document.querySelectorAll('#userCheckboxes input[type="checkbox"]:checked')].map(cb => cb.value);
   const { tasks } = loadAll();
-
-  if (editId) {
-    const idx = tasks.findIndex(t => t.id === editId);
-    if (idx !== -1) tasks[idx] = { ...tasks[idx], name, desc, priority, status, assignedTo, dueDate };
-    showToast('Tarea actualizada.', 'success');
-  } else {
-    tasks.push({
-      id: genId('t'),
-      projectId: currentProjId,
-      name, desc, priority, status, assignedTo, dueDate,
-      createdAt: new Date().toISOString(),
-    });
-    showToast('Tarea creada exitosamente.', 'success');
-  }
-
-  saveTasks(tasks);
-  renderBoard();
-  document.getElementById('taskOverlay').classList.remove('open');
+  if (editId) { const idx = tasks.findIndex(t => t.id === editId); if (idx !== -1) tasks[idx] = { ...tasks[idx], name, desc, priority, status, assignedTo, dueDate }; showToast('Tarea actualizada.','success'); }
+  else { tasks.push({ id:genId('t'), projectId:currentProjId, name, desc, priority, status, assignedTo, dueDate, createdAt:new Date().toISOString() }); showToast('Tarea creada exitosamente.','success'); }
+  saveTasks(tasks); renderBoard(); document.getElementById('taskOverlay').classList.remove('open');
 });
 
-/* ── ELIMINAR TAREA ─────────────────────────── */
 function promptDelTask(id) {
-  closeTaskMenus();
-  delTaskTargetId = id;
-  const { tasks } = loadAll();
-  const t = tasks.find(x => x.id === id);
+  closeTaskMenus(); delTaskTargetId = id;
+  const { tasks } = loadAll(); const t = tasks.find(x => x.id === id);
   document.getElementById('delTaskName').textContent = t ? t.name : '';
   document.getElementById('delTaskOverlay').classList.add('open');
 }
-
-['delTaskClose', 'delTaskCancel'].forEach(id => {
-  document.getElementById(id).addEventListener('click', () =>
-    document.getElementById('delTaskOverlay').classList.remove('open')
-  );
-});
+['delTaskClose','delTaskCancel'].forEach(id => document.getElementById(id).addEventListener('click', () => document.getElementById('delTaskOverlay').classList.remove('open')));
 document.getElementById('delTaskConfirm').addEventListener('click', () => {
-  const { tasks } = loadAll();
-  saveTasks(tasks.filter(t => t.id !== delTaskTargetId));
-  renderBoard();
-  document.getElementById('delTaskOverlay').classList.remove('open');
-  showToast('Tarea eliminada.', 'error');
+  const { tasks } = loadAll(); saveTasks(tasks.filter(t => t.id !== delTaskTargetId));
+  renderBoard(); document.getElementById('delTaskOverlay').classList.remove('open'); showToast('Tarea eliminada.','error');
 });
 
-/* ── TASK MENUS ─────────────────────────────── */
-function toggleTaskMenu(id) {
-  const m = document.getElementById('tmenu-' + id);
-  const open = m.classList.contains('open');
-  closeTaskMenus();
-  if (!open) m.classList.add('open');
-}
-function closeTaskMenus() {
-  document.querySelectorAll('.dd-menu.open').forEach(el => el.classList.remove('open'));
-}
-document.addEventListener('click', e => {
-  if (!e.target.classList.contains('task-menu-btn')) closeTaskMenus();
-});
+function toggleTaskMenu(id) { const m = document.getElementById('tmenu-'+id); const o = m.classList.contains('open'); closeTaskMenus(); if (!o) m.classList.add('open'); }
+function closeTaskMenus() { document.querySelectorAll('.dd-menu.open').forEach(el => el.classList.remove('open')); }
+document.addEventListener('click', e => { if (!e.target.classList.contains('task-menu-btn')) closeTaskMenus(); });
 </script>
 </body>
 </html>

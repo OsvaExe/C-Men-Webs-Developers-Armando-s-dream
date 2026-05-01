@@ -1,0 +1,70 @@
+/* ═══════════════════════════════════════
+   dashboard.css — Estilos del Dashboard
+   ═══════════════════════════════════════ */
+
+.dash-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;
+}
+@media (max-width: 900px) { .dash-grid { grid-template-columns: 1fr; } }
+
+/* Títulos de sección */
+.section-title {
+  font-family: 'Syne', sans-serif; font-weight: 700;
+  font-size: 1rem; margin-bottom: 1rem;
+}
+
+/* Lista de actividad reciente */
+.activity-list { display: flex; flex-direction: column; gap: .5rem; }
+.activity-item {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: .85rem 1.1rem;
+  display: flex; align-items: center; gap: .85rem;
+  transition: border-color var(--tr);
+}
+.activity-item:hover { border-color: var(--accent); }
+.act-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.act-info { flex: 1; min-width: 0; }
+.act-name {
+  font-size: .88rem; font-weight: 500;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.act-proj { font-size: .76rem; color: var(--muted); margin-top: .15rem; }
+.act-date { font-size: .75rem; color: var(--muted); flex-shrink: 0; }
+
+/* Mini tarjetas de proyectos con progreso */
+.proj-mini-list { display: flex; flex-direction: column; gap: .65rem; }
+.proj-mini {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 1rem 1.1rem;
+  transition: border-color var(--tr);
+}
+.proj-mini:hover { border-color: var(--accent); }
+.proj-mini-header {
+  display: flex; align-items: center;
+  justify-content: space-between; margin-bottom: .6rem;
+}
+.proj-mini-name {
+  font-size: .88rem; font-weight: 600;
+  display: flex; align-items: center; gap: .5rem;
+}
+.proj-color-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.proj-mini-pct {
+  font-family: 'Syne', sans-serif; font-size: .85rem; font-weight: 700;
+}
+
+/* Acceso rápido */
+.quick-actions { display: flex; gap: .75rem; flex-wrap: wrap; }
+.qa-card {
+  flex: 1; min-width: 130px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 1.1rem;
+  text-align: center; transition: all var(--tr);
+  display: flex; flex-direction: column; align-items: center; gap: .5rem;
+}
+.qa-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
+.qa-icon { font-size: 1.6rem; }
+.qa-label { font-size: .82rem; font-weight: 500; color: var(--muted); }
